@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#2A2A2A"/>
+      <stop offset="100%" style="stop-color:#1A1A1A"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFDA6A"/>
+      <stop offset="50%" style="stop-color:#C9A84C"/>
+      <stop offset="100%" style="stop-color:#9A7B1F"/>
+    </linearGradient>
+    <linearGradient id="sunGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFE699"/>
+      <stop offset="100%" style="stop-color:#C9A84C"/>
+    </linearGradient>
+  </defs>
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="100" fill="url(#bg)"/>
+  <!-- Sun rays -->
+  <g transform="translate(100,72)" opacity="0.7">
+    <line x1="0" y1="-18" x2="0" y2="-26" stroke="url(#sunGlow)" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="12" y1="-14" x2="18" y2="-21" stroke="url(#sunGlow)" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="-12" y1="-14" x2="-18" y2="-21" stroke="url(#sunGlow)" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="18" y1="-5" x2="26" y2="-7" stroke="url(#sunGlow)" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="-18" y1="-5" x2="-26" y2="-7" stroke="url(#sunGlow)" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <!-- Sun circle -->
+  <circle cx="100" cy="72" r="12" fill="url(#sunGlow)" opacity="0.9"/>
+  <!-- Wave line -->
+  <path d="M40 90 Q60 78, 80 90 Q100 102, 120 90 Q140 78, 160 90" fill="none" stroke="url(#gold)" stroke-width="3" stroke-linecap="round"/>
+  <!-- Text: Raio de Sol -->
+  <text x="100" y="128" text-anchor="middle" font-family="Georgia, serif" font-size="26" font-weight="bold" fill="url(#gold)">Raio de Sol</text>
+  <!-- Text: STUDIO -->
+  <text x="100" y="152" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" letter-spacing="6" fill="#C9A84C" opacity="0.8">STUDIO</text>
+</svg>

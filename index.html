@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Studio Raio do Sol - Sistema de Agendamento para Salão de Beleza. Acesse sua agenda profissional.">
+    <title>Studio Raio do Sol - Acesso Profissional</title>
+    
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#111827">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="assets/logo.png">
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker registrado:', reg.scope))
+                    .catch(err => console.error('Erro ao registrar Service Worker:', err));
+            });
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=11">
+    
+    <!-- Local file protocol blocker & guide overlay -->
+    <script>
+        if (window.location.protocol === 'file:') {
+            document.addEventListener('DOMContentLoaded', () => {
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0; left: 0; width: 100%; height: 100%;
+                    background: rgba(15, 15, 15, 0.98);
+                    backdrop-filter: blur(12px);
+                    z-index: 100000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-family: 'Inter', sans-serif;
+                    color: #fff;
+                    padding: 20px;
+                    text-align: center;
+                `;
+                overlay.innerHTML = `
+                    <div style="background: rgba(25, 25, 25, 0.85); border: 1.5px solid rgba(201, 168, 76, 0.25); border-radius: 16px; max-width: 520px; padding: 40px; box-shadow: 0 25px 60px rgba(0,0,0,0.6); animation: serviceCardFadeIn 0.4s ease both;">
+                        <div style="font-size: 3.5rem; margin-bottom: 20px;">⚠️</div>
+                        <h2 style="color: #C9A84C; font-family: 'Inter', sans-serif; font-size: 1.65rem; font-weight: 700; margin-bottom: 15px; letter-spacing: 0.5px;">Acesso Local Bloqueado pelo Navegador</h2>
+                        <p style="font-size: 0.92rem; line-height: 1.65; color: #dcdcdc; margin-bottom: 25px;">
+                            Você abriu o site dando dois cliques no arquivo HTML (protocolo <strong>file://</strong>). <br><br>
+                            Como o site agora usa o <strong>Firebase</strong> (que funciona com Módulos JavaScript modernos), os navegadores modernos bloqueiam o carregamento por questões de segurança (CORS). Isso deixa todos os botões e páginas inativos.
+                        </p>
+                        <div style="background: rgba(201, 168, 76, 0.08); border-left: 4px solid #C9A84C; padding: 18px; border-radius: 6px; text-align: left; font-size: 0.86rem; color: #f3d476; margin-bottom: 25px; line-height: 1.55; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);">
+                            <strong style="display: block; margin-bottom: 6px; font-size: 0.9rem;">Como Resolver em 2 Passos Simples:</strong>
+                            1. **Hospede o site:** Suba a pasta do projeto para um servidor de testes online (Netlify, Vercel, Firebase Hosting, etc.).<br>
+                            2. **Ou use um Servidor Local:** Se estiver editando no VS Code, instale a extensão **Live Server** e clique em **"Go Live"** para abrir o site via <strong style="text-decoration: underline;">http://localhost</strong>.
+                        </div>
+                        <p style="font-size: 0.82rem; color: #888; font-style: italic;">Ao rodar em um servidor web local ou hospedado, esta mensagem sumirá automaticamente.</p>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+            });
+        }
+    </script>
+</head>
+<body>
+    <!-- Background Pattern Overlay -->
+    <div class="bg-pattern"></div>
+    
+    <!-- Floating Particles -->
+    <div class="particles" id="particles"></div>
+
+    <!-- ==================== LOGIN SCREEN ==================== -->
+    <main class="auth-container" id="loginScreen">
+        <div class="auth-card glass-card">
+            <!-- Logo Section -->
+            <div class="auth-logo">
+                <div class="logo-wrapper">
+                    <img src="assets/logo.png" alt="Studio Raio do Sol" class="logo-img" id="logoImg" onerror="this.onerror=null; this.src='assets/logo-fallback.svg';">
+                </div>
+                <div class="logo-glow"></div>
+            </div>
+
+            <!-- Title -->
+            <div class="auth-header">
+                <h1 class="auth-title">ACESSO PROFISSIONAL</h1>
+                <p class="auth-subtitle">Bem-vindo de volta, profissional!</p>
+            </div>
+
+            <!-- Login Form -->
+            <form class="auth-form" id="loginForm" novalidate>
+                <!-- Email Field -->
+                <div class="form-group">
+                    <label for="loginEmail" class="form-label">E-mail ou Usuário</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                        </span>
+                        <input type="email" id="loginEmail" class="form-input" placeholder="seu.email@exemplo.com" required autocomplete="email">
+                    </div>
+                    <span class="form-error" id="loginEmailError"></span>
+                </div>
+
+                <!-- Password Field -->
+                <div class="form-group">
+                    <label for="loginPassword" class="form-label">Senha</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                        </span>
+                        <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+                        <button type="button" class="toggle-password" id="toggleLoginPassword" aria-label="Mostrar senha">
+                            <svg class="eye-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            <svg class="eye-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                <line x1="1" y1="1" x2="23" y2="23"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <span class="form-error" id="loginPasswordError"></span>
+                </div>
+
+                <!-- Forgot Password -->
+                <div class="form-options">
+                    <a href="#" class="forgot-link" id="forgotPasswordLink">Esqueci minha senha</a>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary" id="loginBtn">
+                    <span class="btn-text">ENTRAR</span>
+                    <span class="btn-loader" style="display:none">
+                        <span class="spinner"></span>
+                    </span>
+                </button>
+            </form>
+
+            <!-- Register Link -->
+            <div class="auth-footer">
+                <p>Ainda não tem conta? <a href="#" class="register-link" id="goToRegister">Cadastre-se</a></p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="page-footer">
+            <p>Sistema de Agendamento Studio Raio do Sol - Todos os direitos reservados.</p>
+        </footer>
+    </main>
+
+    <!-- ==================== REGISTER SCREEN ==================== -->
+    <main class="auth-container hidden" id="registerScreen">
+        <div class="auth-card glass-card register-card">
+            <!-- Logo Section -->
+            <div class="auth-logo">
+                <div class="logo-wrapper">
+                    <img src="assets/logo.png" alt="Studio Raio do Sol" class="logo-img" onerror="this.onerror=null; this.src='assets/logo-fallback.svg';">
+                </div>
+                <div class="logo-glow"></div>
+            </div>
+
+            <!-- Title -->
+            <div class="auth-header">
+                <h1 class="auth-title">CADASTRO PROFISSIONAL</h1>
+                <p class="auth-subtitle">Crie sua conta para acessar o sistema</p>
+            </div>
+
+            <!-- Register Form -->
+            <form class="auth-form" id="registerForm" novalidate>
+                <!-- Foto de Perfil Upload -->
+                <div class="form-group profile-upload-group" style="text-align: center; margin-bottom: 24px;">
+                    <label class="form-label" style="display: block; text-align: center; margin-bottom: 8px;">Foto de Perfil <span style="color: var(--error)">*</span></label>
+                    <div class="input-wrapper" style="display: flex; justify-content: center; width: 100%;">
+                        <div class="avatar-upload-container" id="avatarUploadContainer">
+                            <input type="file" id="registerAvatarFile" accept="image/*" required>
+                            <div class="avatar-preview-placeholder" id="avatarPreviewPlaceholder">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 4px; color: var(--gold-300);"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                <span style="display: block; font-size: 11px; font-weight: 500;">Adicionar Foto</span>
+                            </div>
+                            <img id="registerAvatarPreview" class="hidden" alt="Foto de perfil">
+                        </div>
+                    </div>
+                    <span class="form-error" id="registerAvatarError" style="display: block; text-align: center;"></span>
+                </div>
+
+                <!-- Name Field -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="registerName" class="form-label">Nome Completo</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                            </span>
+                            <input type="text" id="registerName" class="form-input" placeholder="Seu nome completo" required>
+                        </div>
+                        <span class="form-error" id="registerNameError"></span>
+                    </div>
+                </div>
+
+                <!-- Phone Field -->
+                <div class="form-group">
+                    <label for="registerPhone" class="form-label">Telefone / WhatsApp</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                            </svg>
+                        </span>
+                        <input type="tel" id="registerPhone" class="form-input" placeholder="(00) 00000-0000" required>
+                    </div>
+                    <span class="form-error" id="registerPhoneError"></span>
+                </div>
+
+                <!-- Email Field -->
+                <div class="form-group">
+                    <label for="registerEmail" class="form-label">E-mail</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                <polyline points="22,6 12,13 2,6"/>
+                            </svg>
+                        </span>
+                        <input type="email" id="registerEmail" class="form-input" placeholder="seu.email@exemplo.com" required>
+                    </div>
+                    <span class="form-error" id="registerEmailError"></span>
+                </div>
+
+                <!-- Password Fields -->
+                <div class="form-group">
+                    <label for="registerPassword" class="form-label">Senha</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                        </span>
+                        <input type="password" id="registerPassword" class="form-input" placeholder="Mínimo 6 caracteres" required minlength="6">
+                        <button type="button" class="toggle-password" id="toggleRegisterPassword" aria-label="Mostrar senha">
+                            <svg class="eye-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            <svg class="eye-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                <line x1="1" y1="1" x2="23" y2="23"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <!-- Password Strength -->
+                    <div class="password-strength" id="passwordStrength">
+                        <div class="strength-bars">
+                            <div class="strength-bar"></div>
+                            <div class="strength-bar"></div>
+                            <div class="strength-bar"></div>
+                            <div class="strength-bar"></div>
+                        </div>
+                        <span class="strength-text" id="strengthText"></span>
+                    </div>
+                    <span class="form-error" id="registerPasswordError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="registerConfirmPassword" class="form-label">Confirmar Senha</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                        </span>
+                        <input type="password" id="registerConfirmPassword" class="form-input" placeholder="Repita sua senha" required>
+                    </div>
+                    <span class="form-error" id="registerConfirmPasswordError"></span>
+                </div>
+
+                <!-- Info Notice -->
+                <div class="info-notice">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    <span>Seu cadastro será aprovado pela administração do salão.</span>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary" id="registerBtn">
+                    <span class="btn-text">CRIAR CONTA</span>
+                    <span class="btn-loader" style="display:none">
+                        <span class="spinner"></span>
+                    </span>
+                </button>
+            </form>
+
+            <!-- Back to Login -->
+            <div class="auth-footer">
+                <p>Já tem uma conta? <a href="#" class="register-link" id="goToLogin">Fazer login</a></p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="page-footer">
+            <p>Sistema de Agendamento Studio Raio do Sol - Todos os direitos reservados.</p>
+        </footer>
+    </main>
+
+    <!-- ==================== SUCCESS MODAL ==================== -->
+    <div class="modal-overlay hidden" id="successModal">
+        <div class="modal-card glass-card">
+            <div class="modal-icon success-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+            </div>
+            <h2 class="modal-title">Cadastro Realizado!</h2>
+            <p class="modal-message">Seu cadastro foi enviado com sucesso. Aguarde a aprovação do administrador do salão para acessar o sistema.</p>
+            <button class="btn btn-primary modal-btn" id="modalOkBtn">ENTENDIDO</button>
+        </div>
+    </div>
+
+    <!-- ==================== FORGOT PASSWORD MODAL ==================== -->
+    <div class="modal-overlay hidden" id="forgotModal">
+        <div class="modal-card glass-card">
+            <div class="modal-icon forgot-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                </svg>
+            </div>
+            <h2 class="modal-title">Recuperar Senha</h2>
+            <p class="modal-message">Digite seu e-mail cadastrado para receber as instruções de recuperação de senha.</p>
+            <form id="forgotForm" novalidate>
+                <div class="form-group">
+                    <div class="input-wrapper">
+                        <span class="input-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                <polyline points="22,6 12,13 2,6"/>
+                            </svg>
+                        </span>
+                        <input type="email" id="forgotEmail" class="form-input" placeholder="seu.email@exemplo.com" required>
+                    </div>
+                    <span class="form-error" id="forgotEmailError"></span>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="forgotCancelBtn">CANCELAR</button>
+                    <button type="submit" class="btn btn-primary" id="forgotSubmitBtn">ENVIAR</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="app.js?v=10"></script>
+</body>
+</html>

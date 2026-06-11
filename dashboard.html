@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Painel Administrativo - Studio Raio do Sol">
+    <meta name="author" content="Studio Raio do Sol">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Studio Raio do Sol - Painel Administrativo</title>
+    
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#111827">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="assets/logo.png">
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker registrado:', reg.scope))
+                    .catch(err => console.error('Erro ao registrar Service Worker:', err));
+            });
+        }
+    </script>
+    
+    <!-- Theme Restore script to prevent layout flashes -->
+    <script>
+        if (localStorage.getItem('raiosol_theme') === 'dark') {
+            document.documentElement.classList.add('dark-mode');
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Dashboard Styles -->
+    <link rel="stylesheet" href="dashboard.css?v=39">
+    
+    <!-- Local file protocol blocker & guide overlay -->
+    <script>
+        if (window.location.protocol === 'file:') {
+            document.addEventListener('DOMContentLoaded', () => {
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0; left: 0; width: 100%; height: 100%;
+                    background: rgba(15, 15, 15, 0.98);
+                    backdrop-filter: blur(12px);
+                    z-index: 100000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-family: 'Inter', sans-serif;
+                    color: #fff;
+                    padding: 20px;
+                    text-align: center;
+                `;
+                overlay.innerHTML = `
+                    <div style="background: rgba(25, 25, 25, 0.85); border: 1.5px solid rgba(201, 168, 76, 0.25); border-radius: 16px; max-width: 520px; padding: 40px; box-shadow: 0 25px 60px rgba(0,0,0,0.6); animation: serviceCardFadeIn 0.4s ease both;">
+                        <div style="font-size: 3.5rem; margin-bottom: 20px;">⚠️</div>
+                        <h2 style="color: #C9A84C; font-family: 'Inter', sans-serif; font-size: 1.65rem; font-weight: 700; margin-bottom: 15px; letter-spacing: 0.5px;">Acesso Local Bloqueado pelo Navegador</h2>
+                        <p style="font-size: 0.92rem; line-height: 1.65; color: #dcdcdc; margin-bottom: 25px;">
+                            Você abriu o site dando dois cliques no arquivo HTML (protocolo <strong>file://</strong>). <br><br>
+                            Como o site agora usa o <strong>Firebase</strong> (que funciona com Módulos JavaScript modernos), os navegadores modernos bloqueiam o carregamento por questões de segurança (CORS). Isso deixa todos os botões e páginas inativos.
+                        </p>
+                        <div style="background: rgba(201, 168, 76, 0.08); border-left: 4px solid #C9A84C; padding: 18px; border-radius: 6px; text-align: left; font-size: 0.86rem; color: #f3d476; margin-bottom: 25px; line-height: 1.55; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);">
+                            <strong style="display: block; margin-bottom: 6px; font-size: 0.9rem;">Como Resolver em 2 Passos Simples:</strong>
+                            1. **Hospede o site:** Suba a pasta do projeto para um servidor de testes online (Netlify, Vercel, Firebase Hosting, etc.).<br>
+                            2. **Ou use um Servidor Local:** Se estiver editando no VS Code, instale a extensão **Live Server** e clique em **"Go Live"** para abrir o site via <strong style="text-decoration: underline;">http://localhost</strong>.
+                        </div>
+                        <p style="font-size: 0.82rem; color: #888; font-style: italic;">Ao rodar em um servidor web local ou hospedado, esta mensagem sumirá automaticamente.</p>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+            });
+        }
+    </script>
+</head>
+<body>
+    <script>
+        if (localStorage.getItem('raiosol_theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    </script>
+    <div class="dashboard-layout">
+
+        <!-- ============================================
+             SIDEBAR NAVIGATION
+             ============================================ -->
+        <aside class="sidebar" id="sidebar">
+            <!-- Logo Section -->
+            <div class="sidebar-logo">
+
+                <div class="sidebar-logo-container">
+                    <img src="assets/logo.png"
+                         alt="Logo Studio Raio do Sol"
+                         class="sidebar-logo-img"
+                         onerror="this.onerror=null; this.src='assets/logo-fallback.svg';">
+                </div>
+                <h1 class="sidebar-salon-name">Raio de Sol</h1>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="sidebar-nav" aria-label="Navegação principal">
+                <ul class="sidebar-nav-list">
+                    <li class="sidebar-nav-item active" data-page="agenda">
+                        <a href="#agenda" class="sidebar-nav-link" aria-current="page">
+                            <svg class="sidebar-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <span>Agenda Global</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item" data-page="profissionais">
+                        <a href="#profissionais" class="sidebar-nav-link">
+                            <svg class="sidebar-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                            <span>Profissionais</span>
+                            <span class="sidebar-nav-badge">10/20</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item" data-page="servicos">
+                        <a href="#servicos" class="sidebar-nav-link">
+                            <svg class="sidebar-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="6" cy="6" r="3"/>
+                                <path d="M8.12 8.12L12 12"/>
+                                <path d="M20 4L8.12 15.88"/>
+                                <circle cx="6" cy="18" r="3"/>
+                                <path d="M14.8 14.8L20 20"/>
+                            </svg>
+                            <span>Serviços</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item" data-page="clientes">
+                        <a href="#clientes" class="sidebar-nav-link">
+                            <svg class="sidebar-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            <span>Clientes</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item" data-page="pagamentos">
+                        <a href="#pagamentos" class="sidebar-nav-link">
+                            <svg class="sidebar-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="4" width="20" height="16" rx="2" ry="2"/>
+                                <line x1="12" y1="4" x2="12" y2="20"/>
+                                <line x1="2" y1="12" x2="22" y2="12"/>
+                            </svg>
+                            <span>Pagamentos</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item" data-page="relatorios">
+                        <a href="#relatorios" class="sidebar-nav-link">
+                            <svg class="sidebar-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="20" x2="18" y2="10"/>
+                                <line x1="12" y1="20" x2="12" y2="4"/>
+                                <line x1="6" y1="20" x2="6" y2="14"/>
+                            </svg>
+                            <span>Relatórios</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item" data-page="estoque">
+                        <a href="#estoque" class="sidebar-nav-link">
+                            <svg class="sidebar-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                                <rect x="9" y="3" width="6" height="4" rx="1" ry="1"/>
+                                <line x1="9" y1="12" x2="15" y2="12"/>
+                                <line x1="9" y1="16" x2="13" y2="16"/>
+                            </svg>
+                            <span>Materiais</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item" data-page="gastos">
+                        <a href="#gastos" class="sidebar-nav-link">
+                            <svg class="sidebar-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="1" x2="12" y2="23"/>
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                            </svg>
+                            <span>Planilha de Gastos</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item" data-page="vales">
+                        <a href="#vales" class="sidebar-nav-link">
+                            <svg class="sidebar-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="7" width="20" height="14" rx="2"/>
+                                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                                <line x1="12" y1="12" x2="12" y2="16"/>
+                                <line x1="10" y1="14" x2="14" y2="14"/>
+                            </svg>
+                            <span>Vales</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item" data-page="configuracoes">
+                        <a href="#configuracoes" class="sidebar-nav-link">
+                            <svg class="sidebar-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                            <span>Configurações</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- ============================================
+             MAIN WRAPPER (Top Bar + Content + Right Sidebar)
+             ============================================ -->
+        <div class="main-wrapper">
+
+            <!-- ============================================
+                 TOP BAR
+                 ============================================ -->
+            <header class="topbar" id="topbar">
+                <div class="topbar-left">
+                    <!-- Mobile Menu Toggle -->
+                    <button class="topbar-menu-toggle" id="menuToggle" aria-label="Abrir menu">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="12" x2="21" y2="12"/>
+                            <line x1="3" y1="6" x2="21" y2="6"/>
+                            <line x1="3" y1="18" x2="21" y2="18"/>
+                        </svg>
+                    </button>
+
+                    <!-- Search -->
+                    <div class="topbar-search">
+                        <svg class="topbar-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <input type="text"
+                               class="topbar-search-input"
+                               id="globalSearch"
+                               placeholder="Buscar"
+                               aria-label="Busca global">
+                    </div>
+                </div>
+
+                <div class="topbar-right">
+                    <!-- Dark Mode Toggle -->
+                    <button class="topbar-icon-btn" id="darkModeBtn" aria-label="Alternar Modo Noite" style="margin-right: 8px;">
+                        <!-- Moon icon -->
+                        <svg class="dark-mode-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                        <!-- Sun icon (hidden by default in light mode) -->
+                        <svg class="dark-mode-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                    </button>
+
+                    <!-- Mail -->
+                    <button class="topbar-icon-btn" id="mailBtn" aria-label="Mensagens">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                        <span class="topbar-badge topbar-badge--warning" style="display: none;">5</span>
+                    </button>
+
+                    <!-- Notification Bell -->
+                    <button class="topbar-icon-btn" id="notificationsBtn" aria-label="Notificações">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        <span class="topbar-badge topbar-badge--danger">3</span>
+                    </button>
+
+                    <!-- Divider -->
+                    <div class="topbar-divider"></div>
+
+                    <!-- User Profile -->
+                    <div class="topbar-user" id="userMenu">
+                        <div class="topbar-user-avatar">
+                            <img src="assets/admin-avatar.png" alt="Foto Adm. Deise Rose" class="topbar-user-avatar-img">
+                        </div>
+                        <div class="topbar-user-info">
+                            <span class="topbar-user-name">Adm. Deise Rose</span>
+                            <span class="topbar-user-divider">|</span>
+                            <a href="#" class="topbar-user-logout" id="logoutBtn">Sair</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- ============================================
+                 CONTENT + RIGHT SIDEBAR WRAPPER
+                 ============================================ -->
+            <div class="content-wrapper">
+
+                <!-- ============================================
+                     MAIN CONTENT AREA
+                     ============================================ -->
+                <main class="main-content" id="mainContent">
+                    <!-- ============================================
+                         PAGE: AGENDA
+                         ============================================ -->
+                    <div id="page-agenda" class="dashboard-page">
+                        <!-- Page Title -->
+                        <div class="page-header">
+                            <h2 class="page-title">Agenda Global</h2>
+                        </div>
+ 
+                    <!-- ============================================
+                          STATS CARDS ROW
+                          ============================================ -->
+                    <section class="stats-row" aria-label="Estatísticas resumidas">
+                        <!-- Card 1: Agendamentos Hoje -->
+                        <article class="stat-card" id="statAgendamentos">
+                            <div class="stat-card-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="16" y1="2" x2="16" y2="6"/>
+                                    <line x1="8" y1="2" x2="8" y2="6"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                            </div>
+                            <div class="stat-card-content">
+                                <span class="stat-card-label">Agendamentos Hoje:</span>
+                                <span class="stat-card-value" data-stat="agendamentos">...</span>
+                            </div>
+                        </article>
+ 
+                        <!-- Card 2: Profissionais Ativos -->
+                        <article class="stat-card" id="statProfissionais">
+                            <div class="stat-card-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                            </div>
+                            <div class="stat-card-content">
+                                <span class="stat-card-label">Profissionais Ativos:</span>
+                                <span class="stat-card-value" data-stat="profissionais">...</span>
+                            </div>
+                        </article>
+ 
+                        <!-- Card 3: Serviços Agendados -->
+                        <article class="stat-card" id="statServicos">
+                            <div class="stat-card-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="6" cy="6" r="3"/>
+                                    <path d="M8.12 8.12L12 12"/>
+                                    <path d="M20 4L8.12 15.88"/>
+                                    <circle cx="6" cy="18" r="3"/>
+                                    <path d="M14.8 14.8L20 20"/>
+                                </svg>
+                            </div>
+                            <div class="stat-card-content">
+                                <span class="stat-card-label">Serviços Agendados:</span>
+                                <span class="stat-card-value" data-stat="servicos">...</span>
+                            </div>
+                        </article>
+ 
+                        <!-- Card 4: Receita Estimada -->
+                        <article class="stat-card" id="statReceita">
+                            <div class="stat-card-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="1" x2="12" y2="23"/>
+                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                </svg>
+                            </div>
+                            <div class="stat-card-content">
+                                <span class="stat-card-label">Receita Estimada:</span>
+                                <span class="stat-card-value" data-stat="receita">...</span>
+                            </div>
+                        </article>
+                    </section>
+ 
+                    <!-- ============================================
+                          AGENDA GLOBAL SECTION
+                          ============================================ -->
+                    <section class="agenda-section" id="agendaSection" aria-label="Agenda Global">
+                        <!-- Agenda Header with Filters Integrated (Single Row!) -->
+                        <div class="agenda-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 16px; padding: 16px 24px;">
+                            <h3 class="agenda-title" id="agendaTitle" style="margin: 0; font-family: var(--font-body); font-size: 15px; font-weight: 600; color: var(--dark-text);">Agenda Global</h3>
+                            
+                            <div class="agenda-filters" style="display: flex; align-items: center; gap: 10px; margin: 0; padding: 0; border: none; box-shadow: none;">
+                                <span class="agenda-filters-label" style="font-size: 12px; color: var(--medium-text); font-weight: 500;">Filtrar por</span>
+                                
+                                <div class="agenda-filter-select">
+                                    <select id="filterProfissional" aria-label="Filtrar por profissional">
+                                        <option value="">Profissional</option>
+                                    </select>
+                                </div>
+ 
+                                <div class="agenda-filter-select">
+                                    <select id="filterServico" aria-label="Filtrar por serviço">
+                                        <option value="">Serviço</option>
+                                    </select>
+                                </div>
+ 
+                                <div class="date-nav">
+                                    <button class="date-nav-btn" id="prevDateBtn" aria-label="Dia anterior" title="Dia anterior">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                                    </button>
+                                    <div class="date-nav-display" id="dateDisplay" title="Clique para selecionar uma data">
+                                        <span class="date-nav-weekday" id="dateWeekday"></span>
+                                        <span class="date-nav-date" id="dateFull"></span>
+                                    </div>
+                                    <button class="date-nav-btn" id="nextDateBtn" aria-label="Próximo dia" title="Próximo dia">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                                    </button>
+                                    <input type="date" id="datePicker" class="date-nav-picker">
+                                </div>
+ 
+                                <button class="btn-novo-agendamento" id="novoAgendamentoBtn">
+                                    Novo Agendamento
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- ============================================
+                             WEEKLY CALENDAR GRID
+                             ============================================ -->
+                        <div class="calendar-wrapper">
+                            <div class="calendar-grid" id="calendarGrid">
+                                <!-- O grid da agenda com 18 colunas será renderizado de forma 100% dinâmica pelo JavaScript -->
+                            </div>
+                        </div>
+                    </section>
+                    </div><!-- /#page-agenda -->
+
+                    <!-- ============================================
+                         PAGE: PROFISSIONAIS
+                         ============================================ -->
+                    <div id="page-profissionais" class="dashboard-page hidden">
+                        <div class="page-header-modern">
+                            <div class="page-header-icon" style="background:linear-gradient(135deg,#AB47BC,#CE93D8);">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            </div>
+                            <div>
+                                <h2 class="page-title" style="margin:0;">Gestão de Profissionais</h2>
+                                <p class="page-header-subtitle">Gerencie sua equipe e aprovações de acesso</p>
+                            </div>
+                        </div>
+
+                        <!-- Pending Registrations Section -->
+                        <section class="mod-card" id="sectionPendingApprovals" style="display: none;">
+                            <div class="mod-card-header">
+                                <div class="mod-card-header-left">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                    <h3 class="mod-card-title">Solicitações de Acesso Pendentes</h3>
+                                </div>
+                                <span class="mod-card-badge" id="pendingBadge">0</span>
+                            </div>
+                            <p class="mod-card-desc">Novos profissionais aguardando aprovação para acessar o sistema.</p>
+                            <div class="pending-list" id="pendingApprovalsList">
+                                <!-- Rendered dynamically -->
+                            </div>
+                        </section>
+
+                        <!-- Active Professionals -->
+                        <section class="mod-card" id="sectionActiveProfessionals">
+                            <div class="mod-card-header">
+                                <div class="mod-card-header-left">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                                    <h3 class="mod-card-title">Equipe Studio Raio do Sol</h3>
+                                </div>
+                                <span class="mod-card-count" id="teamCount">0 profissionais</span>
+                            </div>
+                            <p class="mod-card-desc">Profissionais ativos no sistema.</p>
+                            <div class="active-professionals-grid" id="activeProfessionalsGrid">
+                                <!-- Rendered dynamically -->
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- ============================================
+                         PAGE: SERVIÇOS
+                         ============================================ -->
+                    <div id="page-servicos" class="dashboard-page hidden">
+                        <div class="page-header-modern">
+                            <div class="page-header-icon" style="background:linear-gradient(135deg,#C9A84C,#D4B86A);">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12L12 12"/><path d="M20 4L8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8L20 20"/></svg>
+                            </div>
+                            <div style="flex:1;">
+                                <h2 class="page-title" style="margin:0;">Serviços Oferecidos</h2>
+                                <p class="page-header-subtitle">Catálogo completo de procedimentos do studio</p>
+                            </div>
+                            <button class="mod-btn mod-btn--gold" id="btnAdicionarServico">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Novo Serviço
+                            </button>
+                        </div>
+
+                        <div class="mod-card">
+                            <div class="mod-card-header">
+                                <div class="mod-card-header-left">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                                    <h3 class="mod-card-title">Menu de Serviços & Procedimentos</h3>
+                                </div>
+                                <span class="mod-card-count" id="servicesCount">0 serviços</span>
+                            </div>
+                            <div class="services-list-grid" id="servicesListGrid">
+                                <!-- Rendered dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================
+                         PAGE: CLIENTES
+                         ============================================ -->
+                    <div id="page-clientes" class="dashboard-page hidden">
+                        <div class="page-header-modern">
+                            <div class="page-header-icon" style="background:linear-gradient(135deg,#42A5F5,#64B5F6);">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </div>
+                            <div style="flex:1;">
+                                <h2 class="page-title" style="margin:0;">Banco de Clientes</h2>
+                                <p class="page-header-subtitle">Cadastro completo de clientes do studio</p>
+                            </div>
+                            <button class="mod-btn mod-btn--gold" id="btnAdicionarCliente">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Novo Cliente
+                            </button>
+                        </div>
+
+                        <div class="mod-card">
+                            <div class="mod-card-header">
+                                <div class="mod-card-header-left">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                    <h3 class="mod-card-title">Cadastro de Clientes</h3>
+                                </div>
+                                <span class="mod-card-count" id="clientsCount">0 registros</span>
+                            </div>
+                            <div class="mod-table-scroll">
+                                <table class="mod-table clients-table" id="clientsTable">
+                                    <thead>
+                                        <tr>
+                                            <th class="clients-th--avatar"></th>
+                                            <th>Nome</th>
+                                            <th>Telefone</th>
+                                            <th>Classificação</th>
+                                            <th>Último Agendamento</th>
+                                            <th>Total de Visitas</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="clientsTableBody">
+                                        <!-- Rendered dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================
+                         PAGE: RELATÓRIOS
+                         ============================================ -->
+                    <div id="page-relatorios" class="dashboard-page hidden">
+                        <!-- Header with gradient accent -->
+                        <div class="reports-header">
+                            <div class="reports-header-content">
+                                <div class="reports-header-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 class="page-title" id="relatoriosTitle" style="margin:0;">Relatórios Financeiros</h2>
+                                    <p class="reports-header-subtitle" id="relatoriosSubtitle">Visão consolidada do faturamento do studio</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Admin Overview Cards -->
+                        <div class="reports-overview" id="adminFinancialStats">
+                            <div class="report-card report-card--receita">
+                                <div class="report-card-accent"></div>
+                                <div class="report-card-body">
+                                    <div class="report-card-icon-wrap">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                    </div>
+                                    <span class="report-card-value" id="valFaturamentoBruto">R$ 0,00</span>
+                                    <span class="report-card-label">Faturamento Bruto</span>
+                                    <span class="report-card-desc">Total de serviços concluídos</span>
+                                </div>
+                            </div>
+                            <div class="report-card report-card--comissao">
+                                <div class="report-card-accent"></div>
+                                <div class="report-card-body">
+                                    <div class="report-card-icon-wrap">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                                    </div>
+                                    <span class="report-card-value" id="valTotalComissoes">R$ 0,00</span>
+                                    <span class="report-card-label">Total de Comissões Pagas</span>
+                                    <span class="report-card-desc">Repasse aos profissionais</span>
+                                </div>
+                            </div>
+                            <div class="report-card report-card--lucro">
+                                <div class="report-card-accent"></div>
+                                <div class="report-card-body">
+                                    <div class="report-card-icon-wrap">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                                    </div>
+                                    <span class="report-card-value" id="valLucroLiquido">R$ 0,00</span>
+                                    <span class="report-card-label">Lucro Líquido (Studio)</span>
+                                    <span class="report-card-desc">Após comissões pagas</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Employee Overview Cards -->
+                        <div class="reports-overview hidden" id="employeeFinancialStats">
+                            <div class="report-card report-card--receita">
+                                <div class="report-card-accent"></div>
+                                <div class="report-card-body">
+                                    <div class="report-card-icon-wrap">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                    </div>
+                                    <span class="report-card-value" id="valFaturamentoPessoal">R$ 0,00</span>
+                                    <span class="report-card-label">Faturamento Gerado</span>
+                                    <span class="report-card-desc">Total dos meus serviços</span>
+                                </div>
+                            </div>
+                            <div class="report-card report-card--comissao">
+                                <div class="report-card-accent"></div>
+                                <div class="report-card-body">
+                                    <div class="report-card-icon-wrap">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                    </div>
+                                    <span class="report-card-value" id="valComissaoAcumulada">R$ 0,00</span>
+                                    <span class="report-card-label">Minha Comissão</span>
+                                    <span class="report-card-desc">Valor a receber</span>
+                                </div>
+                            </div>
+                            <div class="report-card report-card--servicos">
+                                <div class="report-card-accent"></div>
+                                <div class="report-card-body">
+                                    <div class="report-card-icon-wrap">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12L12 12"/><path d="M20 4L8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8L20 20"/></svg>
+                                    </div>
+                                    <span class="report-card-value" id="valServicosRealizados">0</span>
+                                    <span class="report-card-label">Serviços Realizados</span>
+                                    <span class="report-card-desc">Total concluído</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Filter + Individual Report Section -->
+                        <div class="reports-filter-section" id="reportsFilterSection">
+                            <div class="reports-filter-header">
+                                <div class="reports-filter-title-area">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                                    <span>Filtrar Relatório</span>
+                                </div>
+                            </div>
+
+                            <div class="reports-filter-body" id="reportsFilterBar">
+                                <div class="reports-filter-grid">
+                                    <div class="reports-filter-field">
+                                        <label class="reports-filter-label">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                                            Profissional
+                                        </label>
+                                        <select id="filterReportProfissional" class="reports-field-select">
+                                            <option value="">Todos os Profissionais</option>
+                                        </select>
+                                    </div>
+                                    <div class="reports-filter-field">
+                                        <label class="reports-filter-label">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
+                                            Data Início
+                                        </label>
+                                        <input type="date" id="filterReportDateStart" class="reports-field-input">
+                                    </div>
+                                    <div class="reports-filter-field">
+                                        <label class="reports-filter-label">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
+                                            Data Fim
+                                        </label>
+                                        <input type="date" id="filterReportDateEnd" class="reports-field-input">
+                                    </div>
+                                    <div class="reports-filter-actions">
+                                        <button class="report-btn report-btn--primary" id="btnApplyReportFilters">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                            Aplicar
+                                        </button>
+                                        <button class="report-btn report-btn--outline" id="btnClearReportFilters">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                            Limpar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Individual Report Summary -->
+                            <div class="reports-individual hidden" id="individualReportCard">
+                                <div class="reports-individual-divider"></div>
+                                <div class="reports-individual-header">
+                                    <div class="reports-individual-avatar" id="indivReportAvatar">AP</div>
+                                    <div class="reports-individual-info">
+                                        <h4 class="reports-individual-name" id="indivReportName">Profissional</h4>
+                                        <span class="reports-individual-period" id="indivReportPeriod">Período selecionado</span>
+                                    </div>
+                                </div>
+                                <div class="reports-individual-metrics">
+                                    <div class="indiv-metric">
+                                        <span class="indiv-metric-icon" style="background:rgba(66,165,245,0.12);color:#42A5F5;">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12L12 12"/><path d="M20 4L8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8L20 20"/></svg>
+                                        </span>
+                                        <div class="indiv-metric-text">
+                                            <span class="indiv-metric-value" id="indivReportServicos">0</span>
+                                            <span class="indiv-metric-label">Serviços Realizados</span>
+                                        </div>
+                                    </div>
+                                    <div class="indiv-metric">
+                                        <span class="indiv-metric-icon" style="background:rgba(76,175,80,0.12);color:#4CAF50;">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                        </span>
+                                        <div class="indiv-metric-text">
+                                            <span class="indiv-metric-value" id="indivReportFaturamento">R$ 0,00</span>
+                                            <span class="indiv-metric-label">Faturamento Gerado</span>
+                                        </div>
+                                    </div>
+                                    <div class="indiv-metric">
+                                        <span class="indiv-metric-icon" style="background:rgba(255,152,0,0.12);color:#FF9800;">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                                        </span>
+                                        <div class="indiv-metric-text">
+                                            <span class="indiv-metric-value" id="indivReportComissao">R$ 0,00</span>
+                                            <span class="indiv-metric-label">Comissão (<span id="indivReportPct">0</span>%)</span>
+                                        </div>
+                                    </div>
+                                    <div class="indiv-metric">
+                                        <span class="indiv-metric-icon" style="background:rgba(201,168,76,0.12);color:#C9A84C;">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                                        </span>
+                                        <div class="indiv-metric-text">
+                                            <span class="indiv-metric-value" id="indivReportStudio">R$ 0,00</span>
+                                            <span class="indiv-metric-label">Lucro Studio</span>
+                                        </div>
+                                    </div>
+                                    <div class="indiv-metric">
+                                        <span class="indiv-metric-icon" style="background:rgba(156,39,176,0.12);color:#9C27B0;">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        </span>
+                                        <div class="indiv-metric-text">
+                                            <span class="indiv-metric-value" id="indivReportClientes">0</span>
+                                            <span class="indiv-metric-label">Clientes Atendidos</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Detailed Table -->
+                        <div class="reports-table-card">
+                            <div class="reports-table-header">
+                                <div class="reports-table-title-area">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                    <h3 class="reports-table-title" id="relatoriosTableTitle">Faturamento Detalhado</h3>
+                                </div>
+                                <span class="reports-table-count" id="reportsTableCount">0 registros</span>
+                            </div>
+                            <div class="reports-table-scroll">
+                                <table class="reports-table" id="reportsTable">
+                                    <thead id="reportsTableHead">
+                                        <!-- Rendered dynamically -->
+                                    </thead>
+                                    <tbody id="reportsTableBody">
+                                        <!-- Rendered dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================
+                         PAGE: CONTROLE DE MATERIAIS
+                         ============================================ -->
+                    <div id="page-estoque" class="dashboard-page hidden">
+                        <!-- Header -->
+                        <div class="page-header-modern">
+                            <div class="page-header-icon" style="background:linear-gradient(135deg,#C9A84C,#E8C96C);">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                                    <rect x="9" y="3" width="6" height="4" rx="1" ry="1"/>
+                                    <line x1="9" y1="12" x2="15" y2="12"/>
+                                    <line x1="9" y1="16" x2="13" y2="16"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="page-title" style="margin:0;">Controle de Materiais</h2>
+                                <p class="page-header-subtitle">Registre os materiais retirados por cada profissional</p>
+                            </div>
+                        </div>
+
+                        <!-- Grid de profissionais -->
+                        <div id="materialsProfsGrid" class="materials-prof-grid">
+                            <!-- Renderizado dinamicamente -->
+                        </div>
+
+                        <!-- Modal de retiradas do profissional -->
+                        <div id="materialModal" class="materials-modal-overlay hidden" role="dialog" aria-modal="true">
+                            <div class="materials-modal-panel">
+                                <!-- Header do modal -->
+                                <div class="materials-modal-header">
+                                    <div class="materials-modal-prof-info">
+                                        <div id="materialModalAvatar" class="materials-modal-avatar"></div>
+                                        <div>
+                                            <h3 id="materialModalName" class="materials-modal-title"></h3>
+                                            <span id="materialModalSpecialty" class="materials-modal-specialty"></span>
+                                        </div>
+                                    </div>
+                                    <button id="materialModalClose" class="materials-modal-close" aria-label="Fechar">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    </button>
+                                </div>
+
+                                <!-- Formulário de nova retirada -->
+                                <div class="materials-form-section">
+                                    <h4 class="materials-section-label">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                        Nova Retirada
+                                    </h4>
+                                    <div class="materials-form-row">
+                                        <div class="materials-form-field materials-form-field--wide">
+                                            <label class="materials-form-label" for="mfMaterial">Material</label>
+                                            <input type="text" id="mfMaterial" class="materials-form-input" placeholder="Ex: Lixa, Esmalte, Acetona..." autocomplete="off">
+                                        </div>
+                                        <div class="materials-form-field">
+                                            <label class="materials-form-label" for="mfQty">Quantidade</label>
+                                            <input type="number" id="mfQty" class="materials-form-input" value="1" min="1" step="1">
+                                        </div>
+                                        <div class="materials-form-field">
+                                            <label class="materials-form-label" for="mfUnit">Unidade</label>
+                                            <select id="mfUnit" class="materials-form-input">
+                                                <option value="un">un</option>
+                                                <option value="par">par</option>
+                                                <option value="ml">ml</option>
+                                                <option value="g">g</option>
+                                                <option value="cx">cx</option>
+                                                <option value="pct">pct</option>
+                                            </select>
+                                        </div>
+                                        <div class="materials-form-field">
+                                            <label class="materials-form-label" for="mfDate">Data</label>
+                                            <input type="date" id="mfDate" class="materials-form-input">
+                                        </div>
+                                    </div>
+                                    <div class="materials-form-row" style="margin-top:8px;">
+                                        <div class="materials-form-field materials-form-field--wide">
+                                            <label class="materials-form-label" for="mfNote">Observação (opcional)</label>
+                                            <input type="text" id="mfNote" class="materials-form-input" placeholder="Detalhe adicional...">
+                                        </div>
+                                        <div class="materials-form-field materials-form-field--btn">
+                                            <button id="mfSubmitBtn" class="materials-submit-btn">
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                                Registrar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Tabela de histórico -->
+                                <div class="materials-history-section">
+                                    <h4 class="materials-section-label">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                        Histórico de Retiradas
+                                    </h4>
+                                    <div id="materialHistoryContainer" class="materials-history-container">
+                                        <!-- Renderizado dinamicamente -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================
+                         PAGE: PAGAMENTOS
+                         ============================================ -->
+                    <div id="page-pagamentos" class="dashboard-page hidden">
+                        <!-- Header with gradient accent -->
+                        <div class="reports-header" style="margin-bottom: 24px;">
+                            <div class="reports-header-content">
+                                <div class="reports-header-icon" style="background: linear-gradient(135deg, var(--gold-500), var(--gold-600));">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="2" y="4" width="20" height="16" rx="2" ry="2"/>
+                                        <line x1="12" y1="4" x2="12" y2="20"/>
+                                        <line x1="2" y1="12" x2="22" y2="12"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 class="page-title" id="pagamentosPageTitle" style="margin:0;">Gestão de Pagamentos & Comissões</h2>
+                                    <p class="reports-header-subtitle" id="pagamentosPageSubtitle">Faturamento de profissionais, controle de comissões e fechamento de períodos de trabalho.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Admin Panel View -->
+                        <div id="adminPaymentsPanel" class="payouts-main-grid">
+                            <!-- Left Sidebar: Professional Select List -->
+                            <div class="glass-card" style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+                                <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--neutral-800); margin: 0; font-family: var(--font-display);">Equipe de Profissionais</h3>
+                                <div class="payouts-prof-list" id="payoutProfSelectGrid" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 480px; padding-right: 4px;">
+                                    <!-- Rendered dynamically -->
+                                </div>
+                            </div>
+
+                            <!-- Right Content: Payout Calculator -->
+                            <div class="glass-card" style="padding: 20px;" id="payoutCalculatorPanel">
+                                <div id="payoutNoSelectionPlaceholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 350px; text-align: center; color: var(--neutral-500); gap: 12px;">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--gold-300)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+                                    <h4 style="margin: 0; font-weight: 600; color: var(--neutral-700);">Selecione um Profissional</h4>
+                                    <p style="margin: 0; font-size: 0.82rem; max-width: 280px;">Escolha um colaborador na lista ao lado para iniciar o cálculo de comissões e faturamento.</p>
+                                </div>
+                                <div id="payoutCalculatorContent" class="hidden" style="display: flex; flex-direction: column; gap: 20px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--neutral-200); padding-bottom: 12px;">
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <div id="payoutCalcAvalColor" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">AP</div>
+                                            <div>
+                                                <h4 id="payoutCalcProfName" style="margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--neutral-800);">Ana Paula</h4>
+                                                <span id="payoutCalcProfSpecialty" style="font-size: 0.78rem; color: var(--neutral-500);">Cabelo | Comissão: 35%</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Period buttons -->
+                                        <div class="payout-period-selectors" style="display: flex; gap: 4px; background: var(--neutral-100); padding: 4px; border-radius: var(--radius-md);">
+                                            <button type="button" class="payout-period-btn active" data-period="diario">Diário</button>
+                                            <button type="button" class="payout-period-btn" data-period="semanal">Semanal</button>
+                                            <button type="button" class="payout-period-btn" data-period="quinzenal">Quinzenal</button>
+                                            <button type="button" class="payout-period-btn" data-period="mensal">Mensal</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Date period label -->
+                                    <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--neutral-600); font-weight: 600;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--gold-600);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                        <span id="payoutPeriodDateLabel">Período de faturamento: 02/06/2026</span>
+                                    </div>
+
+                                    <!-- Completed Services Editable List -->
+                                    <div class="reports-table-scroll" style="max-height: 250px; border: 1px solid var(--neutral-200); border-radius: var(--radius-sm);">
+                                        <table class="reports-table" style="width:100%; margin: 0; border: none; font-size: 0.82rem;">
+                                            <thead>
+                                                <tr style="background: var(--neutral-50);">
+                                                    <th style="padding: 10px 12px;">Serviço</th>
+                                                    <th style="padding: 10px 12px;">Cliente</th>
+                                                    <th style="padding: 10px 12px;">Data</th>
+                                                    <th style="padding: 10px 12px; text-align: right; width: 125px;">Valor Cobrado</th>
+                                                    <th style="padding: 10px 12px; text-align: right; width: 100px;">Repasse (Comissão)</th>
+                                                    <th style="padding: 10px 12px; text-align: right; width: 100px;">Studio</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="payoutEditableTableBody">
+                                                <!-- Dynamic list -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <!-- Summary & Finalize Button -->
+                                    <div class="payout-summary-container">
+                                        <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+                                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                                <span style="font-size: 10px; text-transform: uppercase; color: var(--neutral-500); font-weight: 700; letter-spacing: 0.5px;">Faturamento Total</span>
+                                                <span style="font-size: 1.25rem; font-weight: 700; color: var(--neutral-900);" id="valPayoutTotalBilling">R$ 0,00</span>
+                                            </div>
+                                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                                <span style="font-size: 10px; text-transform: uppercase; color: #388E3C; font-weight: 700; letter-spacing: 0.5px;" id="lblPayoutComissao">Comissão (35%)</span>
+                                                <span style="font-size: 1.25rem; font-weight: 700; color: #388E3C;" id="valPayoutComissao">R$ 0,00</span>
+                                            </div>
+                                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                                <span style="font-size: 10px; text-transform: uppercase; color: #1976D2; font-weight: 700; letter-spacing: 0.5px;">Parte do Studio</span>
+                                                <span style="font-size: 1.25rem; font-weight: 700; color: #1976D2;" id="valPayoutStudioShare">R$ 0,00</span>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="mod-btn mod-btn--gold" id="btnFinalizePayout" style="margin:0; height: 46px; padding: 0 24px; font-weight: 700; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(201,168,76,0.25);">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                            FATURAR PERÍODO
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Employee Payout Panel View -->
+                        <div id="employeePaymentsPanel" class="hidden glass-card" style="padding: 20px; margin-bottom: 24px;">
+                            <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px;">
+                                <div class="reports-header-icon" style="background: rgba(76, 175, 80, 0.1); color: #4CAF50; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--neutral-800); margin: 0; font-family: var(--font-display);" id="lblEmpPaymentsTitle">Meus Recebimentos Autorizados</h3>
+                                    <p style="margin: 0; font-size: 0.8rem; color: var(--neutral-500);">Consulte seu histórico de faturas pagas emitidas pela administração.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Shared Finalized Paid Invoices List (Histórico de Faturas) -->
+                        <div class="glass-card" id="payoutsHistoryCard" style="padding: 20px; margin-top: 24px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--neutral-100); padding-bottom: 12px;">
+                                <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--neutral-800); margin: 0; font-family: var(--font-display);">Histórico de Faturas Pagas</h3>
+                                <span class="reports-table-count" id="valPayoutsHistoryCount">0 fatura consolidada</span>
+                            </div>
+                            <div class="reports-table-scroll" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                                <table class="reports-table" style="width:100%; font-size: 0.85rem;">
+                                    <thead>
+                                        <tr>
+                                            <th>Fatura ID</th>
+                                            <th>Data Fechamento</th>
+                                            <th>Profissional</th>
+                                            <th>Período Trabalhado</th>
+                                            <th>Faturamento Total</th>
+                                            <th>Repasse Profissional</th>
+                                            <th>Parte do Studio</th>
+                                            <th>Status</th>
+                                            <th style="width: 120px; text-align: center;">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="payoutHistoryTableBody">
+                                        <!-- Rendered dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================
+                         PAGE: PLANILHA DE GASTOS
+                         ============================================ -->
+                    <div id="page-gastos" class="dashboard-page hidden">
+                        <div class="page-header-modern">
+                            <div class="page-header-icon" style="background: linear-gradient(135deg, #d32f2f, #f44336);">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            </div>
+                            <div>
+                                <h2 class="page-title" style="margin:0;">Planilha de Gastos</h2>
+                                <p class="page-header-subtitle">Controle seus gastos pessoais por categoria e mês</p>
+                            </div>
+                        </div>
+
+                        <!-- Summary Cards -->
+                        <div class="gastos-summary-row" id="gastosSummaryRow">
+                            <article class="stat-card" id="gastosCardMes">
+                                <div class="stat-card-icon" style="background: rgba(229, 57, 53, 0.1) !important; color: #E53935 !important;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                </div>
+                                <div class="stat-card-content">
+                                    <span class="stat-card-label">Gasto este Mês</span>
+                                    <span class="stat-card-value" id="gastosValorMes">R$ 0,00</span>
+                                </div>
+                            </article>
+                            <article class="stat-card" id="gastosCardAno">
+                                <div class="stat-card-icon" style="background: rgba(123, 31, 162, 0.1) !important; color: #7B1FA2 !important;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                                </div>
+                                <div class="stat-card-content">
+                                    <span class="stat-card-label">Gasto este Ano</span>
+                                    <span class="stat-card-value" id="gastosValorAno">R$ 0,00</span>
+                                </div>
+                            </article>
+                            <article class="stat-card" id="gastosCardCategoria">
+                                <div class="stat-card-icon" style="background: rgba(245, 127, 23, 0.1) !important; color: #F57F17 !important;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                                </div>
+                                <div class="stat-card-content">
+                                    <span class="stat-card-label">Maior Categoria</span>
+                                    <span class="stat-card-value" id="gastosMaiorCategoria" style="font-size:14px;">—</span>
+                                </div>
+                            </article>
+                            <article class="stat-card" id="gastosCardQtd">
+                                <div class="stat-card-icon" style="background: rgba(25, 118, 210, 0.1) !important; color: #1976D2 !important;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                </div>
+                                <div class="stat-card-content">
+                                    <span class="stat-card-label">Total de Lançamentos</span>
+                                    <span class="stat-card-value" id="gastosQtdTotal">0</span>
+                                </div>
+                            </article>
+                        </div>
+
+                        <!-- Grid Main Layout -->
+                        <div class="gastos-layout-grid">
+                            <!-- Left Column: Form + History -->
+                            <div style="display: flex; flex-direction: column; gap: 20px; min-width: 0;">
+                                <!-- Add Expense Form -->
+                                <div class="glass-card gastos-form-card" style="padding: 24px;">
+                                    <h3 class="gastos-section-title">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                                        Adicionar Gasto
+                                    </h3>
+                                    <div class="gastos-form-grid">
+                                        <div class="form-group gastos-form-desc">
+                                            <label class="form-group__label">Descrição do Gasto</label>
+                                            <input type="text" id="gastosDescricao" class="form-group__input" placeholder="Ex: Aluguel, Mercado, Gasolina...">
+                                        </div>
+                                        <div class="form-group gastos-form-cat">
+                                            <label class="form-group__label">Categoria</label>
+                                            <select id="gastosCategoria" class="form-group__select">
+                                                <option value="Moradia">Moradia</option>
+                                                <option value="Alimentação">Alimentação</option>
+                                                <option value="Transporte">Transporte</option>
+                                                <option value="Saúde">Saúde</option>
+                                                <option value="Educação">Educação</option>
+                                                <option value="Lazer">Lazer</option>
+                                                <option value="Vestuário">Vestuário</option>
+                                                <option value="Beleza">Beleza</option>
+                                                <option value="Serviços">Serviços</option>
+                                                <option value="Outros">Outros</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group gastos-form-val">
+                                            <label class="form-group__label">Valor (R$)</label>
+                                            <input type="text" id="gastosValor" class="form-group__input" placeholder="0,00">
+                                        </div>
+                                        <div class="form-group gastos-form-date">
+                                            <label class="form-group__label">Data</label>
+                                            <input type="date" id="gastosData" class="form-group__input">
+                                        </div>
+                                        <div class="form-group gastos-form-obs">
+                                            <label class="form-group__label">Observação (opcional)</label>
+                                            <input type="text" id="gastosObs" class="form-group__input" placeholder="Detalhes adicionais...">
+                                        </div>
+                                        <div class="form-group gastos-form-btn">
+                                            <button class="btn-gastos-add" id="gastosAddBtn" style="width:100%;">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                                                Adicionar Gasto
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Month Selector + List -->
+                                <div class="glass-card" style="padding: 24px;">
+                                    <div class="gastos-list-header">
+                                        <h3 class="gastos-section-title" style="margin:0;">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                            Histórico por Mês
+                                        </h3>
+                                        <div class="gastos-filter-row">
+                                            <select id="gastosMesFiltro" class="form-group__select" style="width:160px; font-size:14px;">
+                                                <option value="">Todos os meses</option>
+                                            </select>
+                                            <select id="gastosAnoFiltro" class="form-group__select" style="width:100px; font-size:14px;">
+                                            </select>
+                                            <select id="gatosCatFiltro" class="form-group__select" style="width:160px; font-size:14px;">
+                                                <option value="">Todas as categorias</option>
+                                                <option value="Moradia">Moradia</option>
+                                                <option value="Alimentação">Alimentação</option>
+                                                <option value="Transporte">Transporte</option>
+                                                <option value="Saúde">Saúde</option>
+                                                <option value="Educação">Educação</option>
+                                                <option value="Lazer">Lazer</option>
+                                                <option value="Vestuário">Vestuário</option>
+                                                <option value="Beleza">Beleza</option>
+                                                <option value="Serviços">Serviços</option>
+                                                <option value="Outros">Outros</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div id="gastosListContainer" style="margin-top:20px;">
+                                        <p style="text-align:center; color: var(--neutral-400); padding: 40px 0;">Nenhum gasto lançado ainda.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Column: Reports -->
+                            <div style="display: flex; flex-direction: column; gap: 20px; min-width: 0;">
+                                <!-- Report Section -->
+                                <div class="glass-card" style="padding: 24px;">
+                                    <h3 class="gastos-section-title">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                                        Relatório por Categoria
+                                    </h3>
+                                    <div id="gastosRelatorioContainer">
+                                        <p style="text-align:center; color: var(--neutral-400); padding: 30px 0;">Adicione gastos para ver o relatório.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================
+                         PAGE: VALES DO FUNCIONÁRIO
+                         ============================================ -->
+                    <div id="page-vales" class="dashboard-page hidden">
+                        <div class="page-header-modern">
+                            <div class="page-header-icon" style="background: linear-gradient(135deg, #c9a84c, #9a7b31);">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="2" y="7" width="20" height="14" rx="2"/>
+                                    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                                    <line x1="12" y1="12" x2="12" y2="16"/>
+                                    <line x1="10" y1="14" x2="14" y2="14"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="page-title" style="margin:0;">Vales de Funcionários</h2>
+                                <p class="page-header-subtitle">Gerencie os adiantamentos e vales concedidos à equipe</p>
+                            </div>
+                        </div>
+
+                        <!-- Summary Cards -->
+                        <div class="vales-summary-row" id="valesSummaryRow">
+                            <article class="stat-card" id="valesCardMes">
+                                <div class="stat-card-icon" style="background: rgba(201, 168, 76, 0.1) !important; color: #c9a84c !important;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                </div>
+                                <div class="stat-card-content">
+                                    <span class="stat-card-label">Vales este Mês</span>
+                                    <span class="stat-card-value" id="valesValorMes">R$ 0,00</span>
+                                </div>
+                            </article>
+                            <article class="stat-card" id="valesCardTotal">
+                                <div class="stat-card-icon" style="background: rgba(76, 175, 80, 0.1) !important; color: #4CAF50 !important;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                </div>
+                                <div class="stat-card-content">
+                                    <span class="stat-card-label">Total Consolidado</span>
+                                    <span class="stat-card-value" id="valesValorTotal">R$ 0,00</span>
+                                </div>
+                            </article>
+                            <article class="stat-card" id="valesCardMaiorRecebedor">
+                                <div class="stat-card-icon" style="background: rgba(33, 150, 243, 0.1) !important; color: #2196F3 !important;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                </div>
+                                <div class="stat-card-content">
+                                    <span class="stat-card-label">Maior Recebedor</span>
+                                    <span class="stat-card-value" id="valesMaiorRecebedor" style="font-size:14px;">—</span>
+                                </div>
+                            </article>
+                            <article class="stat-card" id="valesCardQtd">
+                                <div class="stat-card-icon" style="background: rgba(156, 39, 176, 0.1) !important; color: #9C27B0 !important;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                </div>
+                                <div class="stat-card-content">
+                                    <span class="stat-card-label">Qtd. de Lançamentos</span>
+                                    <span class="stat-card-value" id="valesQtdTotal">0</span>
+                                </div>
+                            </article>
+                        </div>
+
+                        <!-- Grid Main Layout -->
+                        <div class="vales-layout-grid">
+                            <!-- Left Column: Form + History -->
+                            <div style="display: flex; flex-direction: column; gap: 20px; min-width: 0;">
+                                <!-- Add Vale Form -->
+                                <div class="glass-card vales-form-card" style="padding: 24px;">
+                                    <h3 class="vales-section-title">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                                        Adicionar Vale
+                                    </h3>
+                                    <div class="vales-form-grid">
+                                        <div class="form-group vales-form-func">
+                                            <label class="form-group__label">Funcionário</label>
+                                            <select id="valeFuncionario" class="form-group__select">
+                                                <option value="">Selecione o profissional...</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group vales-form-val">
+                                            <label class="form-group__label">Valor (R$)</label>
+                                            <input type="text" id="valeValor" class="form-group__input" placeholder="0,00">
+                                        </div>
+                                        <div class="form-group vales-form-date">
+                                            <label class="form-group__label">Data</label>
+                                            <input type="date" id="valeData" class="form-group__input">
+                                        </div>
+                                        <div class="form-group vales-form-obs">
+                                            <label class="form-group__label">Descrição / Observação</label>
+                                            <input type="text" id="valeObs" class="form-group__input" placeholder="Ex: Vale adiantamento combustível...">
+                                        </div>
+                                        <div class="form-group vales-form-btn">
+                                            <button class="btn-vales-add" id="valeAddBtn" style="width:100%;">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                                                Adicionar Vale
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Filters + History List -->
+                                <div class="glass-card" style="padding: 24px;">
+                                    <div class="vales-list-header">
+                                        <h3 class="vales-section-title" style="margin:0;">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                            Histórico de Vales
+                                        </h3>
+                                        <div class="vales-filter-row">
+                                            <select id="valeFuncFiltro" class="form-group__select" style="width:160px; font-size:14px;">
+                                                <option value="">Todos profissionais</option>
+                                            </select>
+                                            <select id="valeMesFiltro" class="form-group__select" style="width:140px; font-size:14px;">
+                                                <option value="">Todos os meses</option>
+                                            </select>
+                                            <select id="valeAnoFiltro" class="form-group__select" style="width:90px; font-size:14px;">
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div id="valesListContainer" style="margin-top:20px;">
+                                        <p style="text-align:center; color: var(--neutral-400); padding: 40px 0;">Nenhum vale lançado ainda.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Column: Reports -->
+                            <div style="display: flex; flex-direction: column; gap: 20px; min-width: 0;">
+                                <!-- Report Section -->
+                                <div class="glass-card" style="padding: 24px;">
+                                    <h3 class="vales-section-title">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                                        Vales por Funcionário
+                                    </h3>
+                                    <div id="valesRelatorioContainer">
+                                        <p style="text-align:center; color: var(--neutral-400); padding: 30px 0;">Adicione vales para ver o relatório.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================
+                         PAGE: CONFIGURAÇÕES
+                         ============================================ -->
+                    <div id="page-configuracoes" class="dashboard-page hidden">
+                        <div class="page-header-modern">
+                            <div class="page-header-icon" style="background:linear-gradient(135deg,#757575,#BDBDBD);">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                            </div>
+                            <div>
+                                <h2 class="page-title" style="margin:0;">Configurações do Sistema</h2>
+                                <p class="page-header-subtitle">Suas informações de perfil e dados do studio</p>
+                            </div>
+                        </div>
+
+                        <div class="settings-grid">
+                            <section class="mod-card">
+                                <div class="mod-card-header">
+                                    <div class="mod-card-header-left">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        <h3 class="mod-card-title">Perfil do Usuário</h3>
+                                    </div>
+                                </div>
+                                <form id="profileForm" class="settings-form">
+                                    <div class="settings-form-row">
+                                        <div class="settings-form-group">
+                                            <label class="settings-form-label">Nome Completo</label>
+                                            <input type="text" id="profileName" class="settings-form-input">
+                                        </div>
+                                        <div class="settings-form-group">
+                                            <label class="settings-form-label">E-mail</label>
+                                            <input type="email" id="profileEmail" class="settings-form-input">
+                                        </div>
+                                    </div>
+                                    <div class="settings-form-row">
+                                        <div class="settings-form-group">
+                                            <label class="settings-form-label">Cargo / Função</label>
+                                            <input type="text" id="profileRole" class="settings-form-input" readonly style="background: var(--neutral-50); opacity: 0.8; cursor: not-allowed;">
+                                        </div>
+                                        <div class="settings-form-group">
+                                            <label class="settings-form-label">Comissão Percentual</label>
+                                            <input type="text" id="profileCommission" class="settings-form-input" readonly style="background: var(--neutral-50); opacity: 0.8; cursor: not-allowed;">
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+                                        <button type="submit" class="mod-btn mod-btn--gold" id="btnSaveProfile" style="box-shadow: 0 4px 12px rgba(201, 168, 76, 0.2);">SALVAR ALTERAÇÕES</button>
+                                    </div>
+                                </form>
+                            </section>
+
+                            <section class="mod-card">
+                                <div class="mod-card-header">
+                                    <div class="mod-card-header-left">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                        <h3 class="mod-card-title">Informações do Salão</h3>
+                                    </div>
+                                </div>
+                                <div class="salon-info">
+                                    <div class="salon-info-item">
+                                        <span class="salon-info-icon" style="color:#C9A84C;">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                        </span>
+                                        <div>
+                                            <strong>Studio Raio do Sol</strong>
+                                            <span>Rua dos Bandeirantes, Salvador - BA, CEP 40260-000</span>
+                                        </div>
+                                    </div>
+                                    <div class="salon-info-item">
+                                        <span class="salon-info-icon" style="color:#4CAF50;">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                                        </span>
+                                        <span>WhatsApp Suporte: (71) 98897-4038</span>
+                                    </div>
+                                    <div class="salon-info-item">
+                                        <span class="salon-info-icon" style="color:#42A5F5;">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                        </span>
+                                        <span>Terça a Sábado, das 08:00 às 20:00</span>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                </main>
+
+                <!-- ============================================
+                     RIGHT SIDEBAR
+                     ============================================ -->
+                <aside class="right-sidebar" id="rightSidebar">
+
+                    <!-- Professionals List -->
+                    <section class="right-panel" id="panelProfissionais">
+                        <h3 class="right-panel-title">
+                            Lista de Profissionais
+                            <span class="right-panel-count">(...)</span>
+                        </h3>
+
+                        <ul class="professionals-list">
+                        </ul>
+                    </section>
+
+                    <!-- Notifications & Reminders -->
+                    <section class="right-panel" id="panelNotificacoes">
+                        <h3 class="right-panel-title">Notificações e Lembretes</h3>
+
+                        <ul class="notifications-list">
+                        </ul>
+                    </section>
+
+                </aside>
+
+            </div><!-- /.content-wrapper -->
+        </div><!-- /.main-wrapper -->
+
+    </div><!-- /.dashboard-layout -->
+
+    <script type="module" src="api-config.js?v=9"></script>
+    <script type="module" src="dashboard.js?v=27"></script>
+</body>
+</html>
