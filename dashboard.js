@@ -1199,6 +1199,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (nextBtn) nextBtn.addEventListener('click', goToNextDay);
 
     if (dateDisplay && datePicker) {
+        datePicker.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
         dateDisplay.addEventListener('click', () => {
             if (typeof datePicker.showPicker === 'function') {
                 datePicker.showPicker();
