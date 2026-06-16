@@ -1678,6 +1678,14 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         document.head.appendChild(modalStyles);
 
+        // Filter services dynamically when professional selection changes
+        const profSelect = modal.querySelector('#apptProfessional');
+        if (profSelect) {
+            profSelect.addEventListener('change', () => {
+                renderCustomServiceDropdown(modal);
+            });
+        }
+
         return modal;
     }
 
@@ -1687,12 +1695,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const serviceSelect = modalElement.querySelector('#apptService');
         const serviceBtnLabel = modalElement.querySelector('#apptServiceBtnLabel');
         const serviceBtn = modalElement.querySelector('#apptServiceBtn');
+        const profSelect = modalElement.querySelector('#apptProfessional');
         
         if (!dropdown || !serviceSelect) return;
 
+        const selectedProfId = profSelect ? profSelect.value : '';
+        let filteredServices = services;
+        if (selectedProfId) {
+            filteredServices = services.filter(s => 
+                Array.isArray(s.professionals) && s.professionals.includes(selectedProfId)
+            );
+            // Fallback in case the selected professional has no associated services
+            if (filteredServices.length === 0) {
+                filteredServices = services;
+            }
+        }
+
         // Group services by niche (category)
         const servicesByNiche = {};
-        services.forEach(s => {
+        filteredServices.forEach(s => {
             const niche = s.niche || 'Outros';
             if (!servicesByNiche[niche]) servicesByNiche[niche] = [];
             servicesByNiche[niche].push(s);
@@ -1738,10 +1759,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!serviceSelect.value) {
             if (serviceBtnLabel) serviceBtnLabel.textContent = 'Selecione um serviço';
         } else {
-            const selectedSvc = services.find(s => String(s.id) === String(serviceSelect.value));
-            if (selectedSvc && serviceBtnLabel) {
-                const priceText = parseFloat(selectedSvc.price) === 0 ? 'A combinar' : formatCurrencyBRL(parseFloat(selectedSvc.price));
-                serviceBtnLabel.textContent = `${selectedSvc.name} (${priceText})`;
+            const selectedSvc = filteredServices.find(s => String(s.id) === String(serviceSelect.value));
+            if (selectedSvc) {
+                if (serviceBtnLabel) {
+                    const priceText = parseFloat(selectedSvc.price) === 0 ? 'A combinar' : formatCurrencyBRL(parseFloat(selectedSvc.price));
+                    serviceBtnLabel.textContent = `${selectedSvc.name} (${priceText})`;
+                }
+            } else {
+                // Currently selected service is not in filtered list, reset it
+                serviceSelect.value = '';
+                if (serviceBtnLabel) serviceBtnLabel.textContent = 'Selecione um serviço';
+                
+                // Clear price and duration preview
+                const apptPrice = modalElement.querySelector('#apptPrice');
+                if (apptPrice) apptPrice.value = '';
+                
+                const durationCard = modalElement.querySelector('#apptDurationInfoCard');
+                if (durationCard) durationCard.style.display = 'none';
             }
         }
 
