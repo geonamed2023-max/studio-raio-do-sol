@@ -357,6 +357,49 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function getStatsConfig() {
         const todayStr = toISODateString(new Date());
+
+        if (session && session.role === 'funcionario' && employeeProf) {
+            const myAppts = appointments.filter(a => 
+                String(a.professionalId) === String(employeeProf.id) ||
+                (a.isMutual && String(a.professionalId2) === String(employeeProf.id))
+            );
+            const myTodayAppts = myAppts.filter(a => a.date === todayStr && a.status !== 'Cancelado');
+            const myActiveAppts = myAppts.filter(a => a.status !== 'Cancelado');
+            const myCompleted = myAppts.filter(a => a.status === 'Concluído');
+            
+            const commissionPercent = employeeProf.percentual || 30;
+            let totalBilling = 0;
+            let totalCommission = 0;
+            myCompleted.forEach(appt => {
+                const price = parseFloat(appt.servicePrice) || 0;
+                if (appt.isMutual) {
+                    totalBilling += price / 2;
+                    totalCommission += price * 0.25;
+                } else {
+                    totalBilling += price;
+                    totalCommission += price * (commissionPercent / 100);
+                }
+            });
+
+            let myReceitaEstimada = 0;
+            myActiveAppts.forEach(appt => {
+                const price = parseFloat(appt.servicePrice) || 0;
+                if (appt.isMutual) {
+                    myReceitaEstimada += price / 2;
+                } else {
+                    myReceitaEstimada += price;
+                }
+            });
+
+            return [
+                { selector: '[data-stat="agendamentos"]',  target: myTodayAppts.length,      type: 'number' },
+                { selector: '[data-stat="profissionais"]',  target: totalCommission,           type: 'currency' },
+                { selector: '[data-stat="servicos"]',       target: myActiveAppts.length,      type: 'number' },
+                { selector: '[data-stat="receita"]',        target: myReceitaEstimada,         type: 'currency' },
+            ];
+        }
+
+        // Admin view
         const activeApptsToday = appointments.filter(a => a.date === todayStr && a.status !== 'Cancelado');
         const totalActiveAppts = appointments.filter(a => a.status !== 'Cancelado').length;
         
@@ -939,6 +982,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /** Initialize stats counter animation on page load */
     function initStatsAnimation() {
+        if (session && session.role === 'funcionario' && employeeProf) {
+            updateEmployeeStatsCards();
+        } else {
+            updateAdminStatsCards();
+        }
         const statsConfig = getStatsConfig();
         statsConfig.forEach((stat, index) => {
             const el = document.querySelector(stat.selector);
@@ -4259,13 +4307,37 @@ document.addEventListener('DOMContentLoaded', () => {
         const todayStr = toISODateString(new Date());
         
         // Calculate employee-only metrics
-        const myAppts = appointments.filter(a => String(a.professionalId) === String(employeeProf.id));
-        const myTodayAppts = myAppts.filter(a => a.date === todayStr);
+        const myAppts = appointments.filter(a => 
+            String(a.professionalId) === String(employeeProf.id) ||
+            (a.isMutual && String(a.professionalId2) === String(employeeProf.id))
+        );
+        const myTodayAppts = myAppts.filter(a => a.date === todayStr && a.status !== 'Cancelado');
+        const myActiveAppts = myAppts.filter(a => a.status !== 'Cancelado');
         const myCompleted = myAppts.filter(a => a.status === 'Concluído');
         
-        const totalBilling = myCompleted.reduce((acc, appt) => acc + appt.servicePrice, 0);
         const commissionPercent = employeeProf.percentual || 30;
-        const totalCommission = totalBilling * (commissionPercent / 100);
+        let totalBilling = 0;
+        let totalCommission = 0;
+        myCompleted.forEach(appt => {
+            const price = parseFloat(appt.servicePrice) || 0;
+            if (appt.isMutual) {
+                totalBilling += price / 2;
+                totalCommission += price * 0.25;
+            } else {
+                totalBilling += price;
+                totalCommission += price * (commissionPercent / 100);
+            }
+        });
+
+        let myReceitaEstimada = 0;
+        myActiveAppts.forEach(appt => {
+            const price = parseFloat(appt.servicePrice) || 0;
+            if (appt.isMutual) {
+                myReceitaEstimada += price / 2;
+            } else {
+                myReceitaEstimada += price;
+            }
+        });
 
         // Update Agendamentos card
         const valAgendamentos = document.querySelector('#statAgendamentos .stat-card-value');
@@ -4288,14 +4360,42 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update Serviços card
         const valServicos = document.querySelector('#statServicos .stat-card-value');
         const lblServicos = document.querySelector('#statServicos .stat-card-label');
-        if (valServicos) valServicos.textContent = myCompleted.length;
-        if (lblServicos) lblServicos.textContent = 'Serviços Realizados';
+        if (valServicos) valServicos.textContent = myActiveAppts.length;
+        if (lblServicos) lblServicos.textContent = 'Meus Serviços Agendados';
 
-        // Update Receita card to Faturamento pessoal
+        // Update Receita card to personal estimated revenue
         const valReceita = document.querySelector('#statReceita .stat-card-value');
         const lblReceita = document.querySelector('#statReceita .stat-card-label');
-        if (valReceita) valReceita.textContent = formatCurrencyBRL(totalBilling);
-        if (lblReceita) lblReceita.textContent = 'Faturamento Gerado';
+        if (valReceita) valReceita.textContent = formatCurrencyBRL(myReceitaEstimada);
+        if (lblReceita) lblReceita.textContent = 'Minha Receita Estimada';
+    }
+
+    /** Update admin metrics labels and icons on dashboard */
+    function updateAdminStatsCards() {
+        const lblAgendamentos = document.querySelector('#statAgendamentos .stat-card-label');
+        if (lblAgendamentos) lblAgendamentos.textContent = 'Agendamentos Hoje:';
+
+        const lblComissao = document.querySelector('#statProfissionais .stat-card-label');
+        const iconComissao = document.querySelector('#statProfissionais .stat-card-icon');
+        if (lblComissao) lblComissao.textContent = 'Profissionais Ativos:';
+        if (iconComissao) {
+            iconComissao.style.background = '';
+            iconComissao.style.color = '';
+            iconComissao.innerHTML = `
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+            `;
+        }
+
+        const lblServicos = document.querySelector('#statServicos .stat-card-label');
+        if (lblServicos) lblServicos.textContent = 'Serviços Agendados:';
+
+        const lblReceita = document.querySelector('#statReceita .stat-card-label');
+        if (lblReceita) lblReceita.textContent = 'Receita Estimada:';
     }
 
     /** Professionals Page rendering (Active list + approvals) */
