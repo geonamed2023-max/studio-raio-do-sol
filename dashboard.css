@@ -9036,3 +9036,75 @@ body.dark-mode .modal-confirm-dialog .btn-do-confirm:hover {
     align-items: center !important;
   }
 }
+
+/* Premium Specialty Chips Selector */
+.specialties-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+  width: 100%;
+}
+
+.specialty-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #FAFAF9;
+  border: 1.5px solid #E5DDCB;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--neutral-700);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: normal;
+}
+
+.specialty-chip:hover {
+  background-color: var(--gold-50);
+  border-color: var(--gold-400);
+  color: var(--gold-900);
+}
+
+.specialty-chip.active {
+  background-color: rgba(201, 168, 76, 0.15) !important;
+  border-color: var(--gold-500) !important;
+  color: var(--gold-900) !important;
+  font-weight: 600;
+}
+
+.specialty-chip .chip-check-icon {
+  color: var(--gold-600);
+  display: none;
+}
+
+.specialty-chip.active .chip-check-icon {
+  display: block;
+}
+
+/* Dark Mode support for specialty chips */
+body.dark-mode .specialty-chip {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #c9c7c4;
+}
+
+body.dark-mode .specialty-chip:hover {
+  background-color: rgba(201, 168, 76, 0.1);
+  border-color: var(--gold-400);
+  color: #ffffff;
+}
+
+body.dark-mode .specialty-chip.active {
+  background-color: rgba(201, 168, 76, 0.2) !important;
+  border-color: var(--gold-500) !important;
+  color: var(--gold-400) !important;
+}
+
+body.dark-mode .specialty-chip.active .chip-check-icon {
+  color: var(--gold-400);
+}
+

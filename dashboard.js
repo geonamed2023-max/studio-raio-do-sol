@@ -1702,9 +1702,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedProfId = profSelect ? profSelect.value : '';
         let filteredServices = services;
         if (selectedProfId) {
-            filteredServices = services.filter(s => 
-                Array.isArray(s.professionals) && s.professionals.includes(selectedProfId)
-            );
+            const prof = professionals.find(p => String(p.id) === String(selectedProfId));
+            const profSpecialties = prof && prof.specialty 
+                ? prof.specialty.split(',').map(sp => sp.trim().toLowerCase()) 
+                : [];
+            
+            filteredServices = services.filter(s => {
+                const isExplicit = Array.isArray(s.professionals) && s.professionals.includes(selectedProfId);
+                const hasNiche = s.niche && profSpecialties.includes(s.niche.toLowerCase());
+                return isExplicit || hasNiche;
+            });
             // Fallback in case the selected professional has no associated services
             if (filteredServices.length === 0) {
                 filteredServices = services;
@@ -5731,16 +5738,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <span class="form-error" id="profCommissionError"></span>
                             </div>
                             <div class="form-group">
-                                <label for="profSpecialtyInput" class="form-label">Especialidade</label>
-                                <select id="profSpecialtyInput" class="form-input appt-select" required>
-                                    <option value="Cabelo" ${specialtyVal === 'Cabelo' ? 'selected' : ''}>Cabelo</option>
-                                    <option value="Manicure" ${specialtyVal === 'Manicure' || specialtyVal === 'Manicure / Pedicure' ? 'selected' : ''}>Manicure / Pedicure</option>
-                                    <option value="Maquiagem" ${specialtyVal === 'Maquiagem' ? 'selected' : ''}>Maquiagem</option>
-                                    <option value="Estética" ${specialtyVal === 'Estética' || specialtyVal.includes('Estética') ? 'selected' : ''}>Estética</option>
-                                    <option value="Sobrancelha" ${specialtyVal === 'Sobrancelha' || specialtyVal.includes('Sobrancelha') ? 'selected' : ''}>Sobrancelha</option>
-                                    <option value="Depilação" ${specialtyVal === 'Depilação' || specialtyVal.includes('Depilação') ? 'selected' : ''}>Depilação</option>
-                                    <option value="Cílios" ${specialtyVal === 'Cílios' || specialtyVal.includes('Cílios') ? 'selected' : ''}>Cílios</option>
-                                </select>
+                                <label class="form-label">Especialidades (Categorias)</label>
+                                <div class="specialties-chips-container" id="profSpecialtyChips"></div>
+                                <input type="hidden" id="profSpecialtyInput" value="${specialtyVal}">
                                 <span class="form-error" id="profSpecialtyError"></span>
                             </div>
                         </div>
@@ -5903,6 +5903,40 @@ document.addEventListener('DOMContentLoaded', () => {
                     profPhotoPreview.style.border = 'none';
                 };
                 reader.readAsDataURL(file);
+            });
+        }
+
+        // Render specialty chips
+        const chipsContainer = profModal.querySelector('#profSpecialtyChips');
+        const hiddenSpecialtyInput = profModal.querySelector('#profSpecialtyInput');
+        if (chipsContainer && hiddenSpecialtyInput) {
+            const allSpecialties = ['Cabelo', 'Manicure', 'Maquiagem', 'Estética', 'Sobrancelha', 'Depilação', 'Cílios'];
+            const activeSpecialties = specialtyVal.split(',').map(s => s.trim().toLowerCase());
+            
+            chipsContainer.innerHTML = allSpecialties.map(spec => {
+                const isActive = activeSpecialties.includes(spec.toLowerCase()) || 
+                                 (spec === 'Manicure' && activeSpecialties.includes('manicure / pedicure'));
+                return `
+                    <div class="specialty-chip ${isActive ? 'active' : ''}" data-value="${spec}">
+                        <span>${spec}</span>
+                        <svg class="chip-check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                `;
+            }).join('');
+
+            // Click handlers for the chips
+            const chips = chipsContainer.querySelectorAll('.specialty-chip');
+            chips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    chip.classList.toggle('active');
+
+                    // Update hidden input value
+                    const selected = Array.from(chipsContainer.querySelectorAll('.specialty-chip.active'))
+                        .map(c => c.dataset.value);
+                    hiddenSpecialtyInput.value = selected.join(', ');
+                });
             });
         }
 
