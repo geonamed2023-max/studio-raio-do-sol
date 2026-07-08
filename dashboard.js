@@ -2439,21 +2439,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const morningSlots = [];
             for (let h = 8; h < 12; h++) {
-                for (let m = 0; m < 60; m += 10) {
+                for (let m = 0; m < 60; m += 30) {
                     morningSlots.push(String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'));
                 }
             }
 
             const afternoonSlots = [];
             for (let h = 12; h < 18; h++) {
-                for (let m = 0; m < 60; m += 10) {
+                for (let m = 0; m < 60; m += 30) {
                     afternoonSlots.push(String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'));
                 }
             }
 
             const eveningSlots = [];
             for (let h = 18; h < 20; h++) {
-                for (let m = 0; m < 60; m += 10) {
+                for (let m = 0; m < 60; m += 30) {
                     eveningSlots.push(String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'));
                 }
             }
@@ -2656,7 +2656,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const morningEndSlots = [];
             for (let h = 8; h < 12; h++) {
-                for (let m = 10; m <= 60; m += 10) {
+                for (let m = 30; m <= 60; m += 30) {
                     const hourStr = (m === 60 ? h + 1 : h);
                     const minStr = (m === 60 ? 0 : m);
                     morningEndSlots.push(String(hourStr).padStart(2, '0') + ':' + String(minStr).padStart(2, '0'));
@@ -2665,7 +2665,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const afternoonEndSlots = [];
             for (let h = 12; h < 18; h++) {
-                for (let m = 10; m <= 60; m += 10) {
+                for (let m = 30; m <= 60; m += 30) {
                     const hourStr = (m === 60 ? h + 1 : h);
                     const minStr = (m === 60 ? 0 : m);
                     afternoonEndSlots.push(String(hourStr).padStart(2, '0') + ':' + String(minStr).padStart(2, '0'));
@@ -2674,7 +2674,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const eveningEndSlots = [];
             for (let h = 18; h < 20; h++) {
-                for (let m = 10; m <= 60; m += 10) {
+                for (let m = 30; m <= 60; m += 30) {
                     const hourStr = (m === 60 ? h + 1 : h);
                     const minStr = (m === 60 ? 0 : m);
                     eveningEndSlots.push(String(hourStr).padStart(2, '0') + ':' + String(minStr).padStart(2, '0'));
@@ -3127,9 +3127,9 @@ document.addEventListener('DOMContentLoaded', () => {
             grid.appendChild(cell);
         });
 
-        // 2. Render 10-Minute Rows (08:00 to 19:50)
+        // 2. Render 30-Minute Rows (08:00 to 19:30)
         for (let hour = BUSINESS_START; hour < BUSINESS_END; hour++) {
-            for (let min = 0; min < 60; min += 10) {
+            for (let min = 0; min < 60; min += 30) {
                 const hourStr = String(hour).padStart(2, '0') + ':' + String(min).padStart(2, '0');
 
                 // Time Cell
@@ -3227,10 +3227,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return apptColors[index];
         };
 
-        const roundToNearest10Min = (timeStr) => {
+        const roundToNearest30Min = (timeStr) => {
             if (!timeStr) return "08:00";
             const [h, m] = timeStr.split(':').map(Number);
-            const roundedM = Math.round(m / 10) * 10;
+            const roundedM = Math.round(m / 30) * 30;
             let newH = h;
             let newM = roundedM;
             if (newM === 60) {
@@ -3240,10 +3240,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return String(newH).padStart(2, '0') + ':' + String(newM).padStart(2, '0');
         };
 
-        const roundDownTo10Min = (timeStr) => {
+        const roundDownTo30Min = (timeStr) => {
             if (!timeStr) return "08:00";
             const [h, m] = timeStr.split(':').map(Number);
-            const roundedM = Math.floor(m / 10) * 10;
+            const roundedM = m < 30 ? 0 : 30;
             return String(h).padStart(2, '0') + ':' + String(roundedM).padStart(2, '0');
         };
 
@@ -3335,7 +3335,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Render appointments for this professional's column
             profAppts.forEach(appt => {
-                const roundedTime = roundDownTo10Min(appt.timeStart);
+                const roundedTime = roundDownTo30Min(appt.timeStart);
                 const targetCell = document.querySelector(`.calendar-cell[data-hour="${roundedTime}"][data-prof-id="${p.id}"]`);
 
                 if (!targetCell) return;
@@ -3382,7 +3382,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 apptBlock.style.borderLeft = `3px solid ${theme.border}`;
                 apptBlock.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
 
-                // Absolute positioning to overflow multiple 10-minute cells dynamically (side-by-side overlap support)
+                // Absolute positioning to overflow multiple 30-minute cells dynamically (side-by-side overlap support)
                 const col = appt.col || 0;
                 const totalCols = appt.totalCols || 1;
                 const colWidth = 100 / totalCols;
@@ -3391,7 +3391,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const [startH, startM] = appt.timeStart.split(':').map(Number);
                 const [cellH, cellM] = roundedTime.split(':').map(Number);
                 const diffMins = (startH * 60 + startM) - (cellH * 60 + cellM);
-                const offsetPx = diffMins * 4;
+                const offsetPx = diffMins * (40 / 30); // 40px per 30 minutes
                 apptBlock.style.top = `${offsetPx}px`;
                 apptBlock.style.left = `calc(${col * colWidth}% + 2px)`;
                 apptBlock.style.width = `calc(${colWidth}% - 4px)`;
@@ -3400,9 +3400,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Calculate height based on duration
                 const [endH, endM] = appt.timeEnd.split(':').map(Number);
                 const durationMinutes = (endH - startH) * 60 + (endM - startM);
-                const finalDuration = Math.max(10, durationMinutes);
-                const cellHeight = 40; // 40px per 10 minutes (defined in css)
-                const slotDuration = 10;
+                const finalDuration = Math.max(15, durationMinutes);
+                const cellHeight = 40; // 40px per cell
+                const slotDuration = 30; // 30 minutes per cell
                 const blockHeight = (finalDuration / slotDuration) * cellHeight;
                 apptBlock.style.height = `${blockHeight}px`;
 
@@ -3411,7 +3411,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const mutualBadge = appt.isMutual ? '<span style="background: rgba(255,255,255,0.25); font-size: 11px; padding: 1px 4px; border-radius: 4px; font-weight: 700; margin-right: 4px; letter-spacing: 0.5px;">MÚTUO</span>' : '';
 
                 // Adapt content and layout based on block height (duration)
-                if (finalDuration <= 10) {
+                if (finalDuration <= 15) {
                     apptBlock.style.padding = '2px 6px';
                     apptBlock.innerHTML = `
                         <div style="display: flex; align-items: center; gap: 4px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; color: inherit; height: 100%;">
@@ -3420,7 +3420,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span style="font-style: italic; opacity: 0.85; text-overflow: ellipsis; overflow: hidden; flex-shrink: 1; color: inherit !important; font-size: 13px;">(${appt.client})</span>
                         </div>
                     `;
-                } else if (finalDuration <= 20) {
+                } else if (finalDuration <= 30) {
                     apptBlock.style.padding = '3px 8px';
                     apptBlock.innerHTML = `
                         <div style="display: flex; flex-direction: column; justify-content: center; gap: 1px; height: 100%; width: 100%;">
