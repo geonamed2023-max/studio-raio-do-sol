@@ -3890,8 +3890,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 newUnreadIds.forEach(id => {
                     const appt = filteredAppts.find(a => String(a.id) === id);
                     if (appt) {
-                        const dateStr = formatStringDateBR(appt.date);
-                        const toastMsg = `Novo agendamento: ${appt.createdBy} agendou ${appt.client} para ${appt.serviceName} em ${dateStr} às ${appt.timeStart}`;
+                        const toastMsg = `${appt.createdBy} fez um agendamento...`;
                         showToast(toastMsg, 'info', 6000);
                     }
                 });
