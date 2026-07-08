@@ -70,6 +70,133 @@ document.addEventListener('DOMContentLoaded', () => {
         populateMainFilters();
     }
 
+    /** Displays a modal that forces the employee to upload a profile photo before using the app */
+    function showForceAvatarModal() {
+        // Prevent duplicate creation
+        if (document.getElementById('forceAvatarModal')) return;
+
+        const modal = document.createElement('div');
+        modal.id = 'forceAvatarModal';
+        modal.className = 'modal-overlay active';
+        modal.style.zIndex = '9999';
+        modal.style.backdropFilter = 'blur(12px)';
+        modal.style.webkitBackdropFilter = 'blur(12px)';
+
+        modal.innerHTML = `
+            <div class="modal-card glass-card" style="max-width: 420px; padding: 28px; border: 1px solid var(--gold-border); text-align: center; box-shadow: var(--shadow-lg); background: #FFFDF9;">
+                <h2 class="modal-title" style="color: var(--gold-600); margin-bottom: 12px; font-size: 20px; font-weight: 700; font-family: var(--font-body);">Foto de Perfil Obrigatória</h2>
+                <p style="color: var(--dark-text); font-size: 14px; line-height: 1.5; margin-bottom: 20px; font-family: var(--font-body);">
+                    Olá, <strong>${session.name}</strong>! Para continuar acessando o painel do Studio Raio do Sol, você precisa anexar uma foto profissional de si mesmo(a). Isso ajuda os clientes a te identificarem na agenda.
+                </p>
+                
+                <div class="avatar-upload-zone" style="border: 2px dashed var(--gold-300); border-radius: var(--radius-md); padding: 24px; background: #fffcf7; cursor: pointer; transition: border-color 0.2s, background 0.2s; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+                    <div class="avatar-preview-container" style="width: 120px; height: 120px; border-radius: 50%; overflow: hidden; background: var(--neutral-100); border: 2px solid var(--gold-border); display: flex; align-items: center; justify-content: center; margin-bottom: 10px; flex-shrink: 0; box-shadow: var(--shadow-sm);">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--neutral-400)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="upload-icon-svg"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <img class="upload-preview-img" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                    </div>
+                    <span style="font-size: 14px; font-weight: 600; color: var(--gold-600);" class="upload-label-text">Clique para escolher sua foto</span>
+                    <span style="font-size: 12px; color: var(--neutral-400);">PNG ou JPG (Máx. 5MB)</span>
+                    <input type="file" class="avatar-file-input" accept="image/png, image/jpeg, image/jpg" style="display: none;">
+                </div>
+                
+                <button class="mod-btn mod-btn--gold btn-save-avatar" disabled style="width: 100%; height: 46px; justify-content: center; font-weight: 700; box-shadow: 0 4px 12px rgba(201, 168, 76, 0.25); cursor: not-allowed; opacity: 0.6;">
+                    SALVAR FOTO E ENTRAR
+                </button>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const uploadZone = modal.querySelector('.avatar-upload-zone');
+        const fileInput = modal.querySelector('.avatar-file-input');
+        const previewImg = modal.querySelector('.upload-preview-img');
+        const iconSvg = modal.querySelector('.upload-icon-svg');
+        const labelText = modal.querySelector('.upload-label-text');
+        const saveBtn = modal.querySelector('.btn-save-avatar');
+        let selectedBase64 = null;
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('A foto não pode ter mais de 5MB.', 'warning');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                selectedBase64 = event.target.result;
+                previewImg.src = selectedBase64;
+                previewImg.style.display = 'block';
+                iconSvg.style.display = 'none';
+                labelText.textContent = 'Foto selecionada!';
+                saveBtn.removeAttribute('disabled');
+                saveBtn.style.cursor = 'pointer';
+                saveBtn.style.opacity = '1';
+            };
+            reader.readAsDataURL(file);
+        });
+
+        saveBtn.addEventListener('click', async () => {
+            if (!selectedBase64) return;
+
+            saveBtn.setAttribute('disabled', 'true');
+            saveBtn.style.cursor = 'not-allowed';
+            saveBtn.style.opacity = '0.6';
+            saveBtn.textContent = 'SALVANDO FOTO...';
+
+            try {
+                // Update user avatar in DB
+                const res = await apiRequest(`/users/${session.id}`, {
+                    method: 'PUT',
+                    body: { avatar: selectedBase64 }
+                });
+
+                if (res && res.success) {
+                    // Update session
+                    session.foto = selectedBase64;
+                    sessionStorage.setItem('raiosol_session', JSON.stringify(session));
+
+                    // Update professionals cache locally
+                    const cachedProfs = JSON.parse(localStorage.getItem('raiosol_professionals') || '[]');
+                    const targetProf = cachedProfs.find(p => String(p.id) === String(session.id));
+                    if (targetProf) {
+                        targetProf.avatar = selectedBase64;
+                        localStorage.setItem('raiosol_professionals', JSON.stringify(cachedProfs));
+                    }
+                    
+                    // Also update in professionals global array in dashboard.js
+                    const globalProf = professionals.find(p => String(p.id) === String(session.id));
+                    if (globalProf) {
+                        globalProf.avatar = selectedBase64;
+                    }
+
+                    // Remove modal
+                    modal.remove();
+
+                    // Re-run setup views to apply new avatar to header/UI elements
+                    await setupRoleBasedView();
+                    renderCalendarGrid(document.getElementById('filterProfissional')?.value || null);
+
+                    showToast('Sua foto de perfil foi salva com sucesso! Seja bem-vindo(a).', 'success');
+                } else {
+                    throw new Error('Falha ao atualizar o perfil.');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Erro ao salvar sua foto. Tente novamente.', 'error');
+                saveBtn.removeAttribute('disabled');
+                saveBtn.style.cursor = 'pointer';
+                saveBtn.style.opacity = '1';
+                saveBtn.textContent = 'SALVAR FOTO E ENTRAR';
+            }
+        });
+    }
+
     /** Professional staff data (dynamic) */
     let professionals = [];
     let renderTimeSlotsDropdown = null;
@@ -8238,6 +8365,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (e) {
                 console.warn('Aviso: não foi possível sincronizar perfil do usuário:', e.message);
+            }
+
+            // Force employee photo upload if missing
+            if (session.role === 'funcionario' && !session.foto) {
+                showForceAvatarModal();
             }
 
             // Sync registered employees
