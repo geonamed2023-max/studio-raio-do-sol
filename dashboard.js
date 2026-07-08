@@ -2022,13 +2022,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /** Open the new appointment modal */
+    /** Open the new/edit appointment modal */
     let isOpeningModal = false;
-    async function openAppointmentModal(preselectedDate = null, preselectedClientObj = null, preselectedProfId = null, preselectedTime = null) {
+    let editingApptId = null;
+    async function openAppointmentModal(preselectedDate = null, preselectedClientObj = null, preselectedProfId = null, preselectedTime = null, editApptId = null) {
         if (!appointmentModal || isOpeningModal) return;
         
         isOpeningModal = true;
         document.body.style.cursor = 'wait';
+        editingApptId = editApptId;
+
+        // If editing an existing appointment, override inputs with database values
+        let appt = null;
+        if (editingApptId) {
+            appt = appointments.find(a => String(a.id) === String(editingApptId));
+            if (appt) {
+                preselectedDate = appt.date;
+                preselectedProfId = appt.professionalId;
+                preselectedTime = appt.timeStart;
+                
+                const clientObj = clients.find(c => c.name.toLowerCase().trim() === appt.client.toLowerCase().trim());
+                preselectedClientObj = clientObj || { name: appt.client, phone: appt.phone || '', level: 'Novo' };
+            }
+        }
 
         try {
             // Ensure we have fresh data before opening the modal
@@ -2190,17 +2206,63 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-            appointmentModal.classList.add('active');
-        } finally {
-            document.body.style.cursor = '';
-            isOpeningModal = false;
-        }
-    }
+        // Edit Mode Pre-populations & UI changes
+        if (appt) {
+            // Set preselected end time
+            if (appt.timeEnd && endTimeInput && endTimeBtn) {
+                endTimeInput.value = appt.timeEnd;
+                endTimeBtn.value = appt.timeEnd;
+                endTimeBtn.classList.remove('error');
+            }
 
-    /** Close the new appointment modal */
-    function closeAppointmentModal() {
-        if (!appointmentModal) return;
-        appointmentModal.classList.remove('active');
+            // Select service
+            const serviceSelect = appointmentModal.querySelector('#apptService');
+            if (serviceSelect) {
+                serviceSelect.value = appt.serviceId;
+                renderCustomServiceDropdown(appointmentModal);
+            }
+
+            // Set price
+            const apptPriceInput = appointmentModal.querySelector('#apptPrice');
+            if (apptPriceInput) {
+                apptPriceInput.value = formatCurrencyBRL(appt.servicePrice);
+            }
+
+            // Mutual work setup
+            if (appt.isMutual) {
+                if (isMutualCheckbox) isMutualCheckbox.checked = true;
+                if (prof2Container) prof2Container.style.display = 'block';
+                if (profSelect2) profSelect2.value = appt.professionalId2;
+            }
+
+            // Calculate & display duration preview card
+            if (typeof updateEstimatedEndTime === 'function') {
+                updateEstimatedEndTime();
+            }
+        }
+
+        // Update titles & buttons based on mode
+        const modalTitle = appointmentModal.querySelector('.modal-title');
+        if (modalTitle) {
+            modalTitle.textContent = editingApptId ? 'Editar Agendamento' : 'Novo Agendamento';
+        }
+        const submitBtnText = appointmentModal.querySelector('.appt-submit-btn .btn-text');
+        if (submitBtnText) {
+            submitBtnText.textContent = editingApptId ? 'SALVAR ALTERAÇÕES' : 'AGENDAR';
+        }
+
+        appointmentModal.classList.add('active');
+    } finally {
+        document.body.style.cursor = '';
+        isOpeningModal = false;
+    }
+}
+
+/** Close the new appointment modal */
+function closeAppointmentModal() {
+    if (!appointmentModal) return;
+    appointmentModal.classList.remove('active');
+    editingApptId = null;
 
         // Reset form and errors
         const form = appointmentModal.querySelector('#newAppointmentForm');
@@ -3170,6 +3232,53 @@ document.addEventListener('DOMContentLoaded', () => {
                 professionalInitials2: prof2 ? prof2.initials : '',
                 professionalColor2: prof2 ? prof2.color : ''
             };
+
+            // Check if we are in Edit Mode
+            if (editingApptId) {
+                const apptIndex = appointments.findIndex(a => String(a.id) === String(editingApptId));
+                if (apptIndex !== -1) {
+                    const originalAppt = appointments[apptIndex];
+                    
+                    originalAppt.professionalId = prof.id;
+                    originalAppt.professionalName = prof.name;
+                    originalAppt.professionalInitials = prof.initials;
+                    originalAppt.professionalColor = prof.color;
+                    originalAppt.client = client.value.trim();
+                    originalAppt.serviceId = svc.id;
+                    originalAppt.serviceName = svc.name;
+                    originalAppt.servicePrice = finalPrice;
+                    originalAppt.date = date.value;
+                    originalAppt.timeStart = timeStart.value;
+                    originalAppt.timeEnd = timeEnd.value;
+                    originalAppt.isMutual = isMutual;
+                    originalAppt.professionalId2 = prof2 ? prof2.id : null;
+                    originalAppt.professionalName2 = prof2 ? prof2.name : '';
+                    originalAppt.professionalInitials2 = prof2 ? prof2.initials : '';
+                    originalAppt.professionalColor2 = prof2 ? prof2.color : '';
+
+                    // Auto-register client if not already in clients list (case-insensitive)
+                    const clientNameClean = client.value.trim();
+                    const clientExists = clients.some(c => c.name.toLowerCase().trim() === clientNameClean.toLowerCase());
+                    if (!clientExists) {
+                        const newClientObj = {
+                            id: 'cli_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                            name: clientNameClean,
+                            phone: '',
+                            level: 'Novo',
+                            avatar: null,
+                            createdAt: new Date().toISOString()
+                        };
+                        clients.push(newClientObj);
+                        console.log(`[Autoregister] Client "${clientNameClean}" auto-registered locally.`);
+                    }
+
+                    saveAppointments();
+                    renderAppointments();
+                    closeAppointmentModal();
+                    showToast('Agendamento atualizado com sucesso!', 'success');
+                    return;
+                }
+            }
 
             // Auto-register client if not already in clients list (case-insensitive)
             const clientNameClean = client.value.trim();
@@ -7206,67 +7315,91 @@ document.addEventListener('DOMContentLoaded', () => {
         allStaticBlocks.forEach(block => block.remove());
     }
 
-    /** Cancel/Complete interactive actions inside Appointment Popover (Admin Only) */
-    function attachPopoverAdminActions(popover, apptId) {
-        if (session.role !== 'admin') return;
-
+    /** Cancel/Complete/Edit interactive actions inside Appointment Popover */
+    function attachPopoverActions(popover, apptId) {
         const body = popover.querySelector('.popover-body');
         if (!body) return;
 
         // Check if there is already an active button panel
-        if (body.querySelector('.admin-popover-actions')) return;
+        if (body.querySelector('.popover-actions')) return;
 
         const apptObj = appointments.find(a => String(a.id) === String(apptId));
         if (!apptObj) return;
 
         const actionPanel = document.createElement('div');
-        actionPanel.className = 'admin-popover-actions';
-        actionPanel.style.cssText = 'display: flex; gap: 8px; margin-top: 14px; border-top: 1px solid rgba(0,0,0,0.06); padding-top: 12px;';
+        actionPanel.className = 'popover-actions';
+        actionPanel.style.cssText = 'display: flex; gap: 8px; margin-top: 14px; border-top: 1px solid rgba(0,0,0,0.06); padding-top: 12px; flex-wrap: wrap;';
 
-        actionPanel.innerHTML = `
-            <button class="btn btn-secondary pop-btn-cancel" style="flex: 1; font-size: 14px; padding: 6px; border: 1px solid #EF5350; color: #EF5350;">CANCELAR</button>
-            <button class="btn btn-primary pop-btn-complete" style="flex: 1; font-size: 14px; padding: 6px; background: #4CAF50; border: none; color: #fff;">CONCLUIR</button>
-        `;
+        const isCompletedOrCancelled = apptObj.status === 'Concluído' || apptObj.status === 'Cancelado';
+
+        if (session.role === 'admin') {
+            actionPanel.innerHTML = `
+                <button class="btn btn-secondary pop-btn-edit" style="flex: 1; font-size: 13px; padding: 6px; border: 1px solid var(--gold-border); color: var(--gold-800); background: transparent; font-weight: 600; cursor: pointer;">EDITAR</button>
+                <button class="btn btn-secondary pop-btn-cancel" style="flex: 1; font-size: 13px; padding: 6px; border: 1px solid #EF5350; color: #EF5350; background: transparent; font-weight: 600; cursor: pointer;" ${isCompletedOrCancelled ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>CANCELAR</button>
+                <button class="btn btn-primary pop-btn-complete" style="flex: 1; font-size: 13px; padding: 6px; background: #4CAF50; border: none; color: #fff; font-weight: 600; cursor: pointer;" ${isCompletedOrCancelled ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>CONCLUIR</button>
+            `;
+        } else {
+            // Employee view: can edit or cancel their own appointments
+            actionPanel.innerHTML = `
+                <button class="btn btn-secondary pop-btn-edit" style="flex: 1; font-size: 13px; padding: 6px; border: 1px solid var(--gold-border); color: var(--gold-800); background: transparent; font-weight: 600; cursor: pointer;">EDITAR</button>
+                <button class="btn btn-secondary pop-btn-cancel" style="flex: 1; font-size: 13px; padding: 6px; border: 1px solid #EF5350; color: #EF5350; background: transparent; font-weight: 600; cursor: pointer;" ${isCompletedOrCancelled ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>CANCELAR</button>
+            `;
+        }
 
         body.appendChild(actionPanel);
 
-        // Cancel Appointment action
-        actionPanel.querySelector('.pop-btn-cancel').addEventListener('click', (e) => {
-            e.stopPropagation();
-            
-            showConfirmDialog({
-                title: 'Desmarcar Agendamento',
-                message: `Tem certeza que deseja desmarcar o agendamento de <strong>${apptObj.client}</strong> para o serviço de <strong>${apptObj.serviceName}</strong>?`,
-                confirmText: 'Desmarcar',
-                onConfirm: () => {
-                    apptObj.status = 'Cancelado';
-                    saveAppointments();
-                    showToast(`Agendamento de ${apptObj.client} marcado como Cancelado`, 'warning');
-                    closePopover();
-                    // Refresh grid rendering
-                    renderAppointments();
-                }
+        // Edit button handler
+        const editBtn = actionPanel.querySelector('.pop-btn-edit');
+        if (editBtn) {
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closePopover();
+                openAppointmentModal(null, null, null, null, apptObj.id);
             });
-        });
+        }
 
-        // Complete Appointment action
-        actionPanel.querySelector('.pop-btn-complete').addEventListener('click', (e) => {
-            e.stopPropagation();
-            apptObj.status = 'Concluído';
-            saveAppointments();
-            showToast(`Serviço de ${apptObj.client} concluído com sucesso!`, 'success');
-            closePopover();
-            // Refresh grid rendering
-            renderAppointments();
-        });
+        // Cancel button handler
+        const cancelBtn = actionPanel.querySelector('.pop-btn-cancel');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (isCompletedOrCancelled) return;
+                showConfirmDialog({
+                    title: 'Desmarcar Agendamento',
+                    message: `Tem certeza que deseja desmarcar o agendamento de <strong>${apptObj.client}</strong> para o serviço de <strong>${apptObj.serviceName}</strong>?`,
+                    confirmText: 'Desmarcar',
+                    onConfirm: () => {
+                        apptObj.status = 'Cancelado';
+                        saveAppointments();
+                        showToast(`Agendamento de ${apptObj.client} marcado como Cancelado`, 'warning');
+                        closePopover();
+                        renderAppointments();
+                    }
+                });
+            });
+        }
+
+        // Complete button handler
+        const completeBtn = actionPanel.querySelector('.pop-btn-complete');
+        if (completeBtn) {
+            completeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (isCompletedOrCancelled) return;
+                apptObj.status = 'Concluído';
+                saveAppointments();
+                showToast(`Serviço de ${apptObj.client} concluído com sucesso!`, 'success');
+                closePopover();
+                renderAppointments();
+            });
+        }
     }
 
-    // Intercept popover show to attach Admin actions
+    // Intercept popover show to attach actions
     const originalShowPopover = showAppointmentPopover;
     showAppointmentPopover = function(anchor, data) {
         originalShowPopover(anchor, data);
         if (activePopover && anchor.dataset.appointment) {
-            attachPopoverAdminActions(activePopover, anchor.dataset.appointment);
+            attachPopoverActions(activePopover, anchor.dataset.appointment);
         }
     };
 
