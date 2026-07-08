@@ -2299,7 +2299,7 @@ img {
   border-right: 1px solid #f0f0f0;
   position: sticky;
   left: 0;
-  z-index: 5;
+  z-index: 120;
 }
 .calendar-time-cell {
   display: flex;
@@ -2315,7 +2315,7 @@ img {
   height: 40px;
   position: sticky;
   left: 0;
-  z-index: 3;
+  z-index: 110;
 }
 .calendar-time-text {
   font-size: 13px;

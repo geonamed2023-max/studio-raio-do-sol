@@ -3128,6 +3128,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // 2. Render 30-Minute Rows (08:00 to 19:30)
+        let rowIndex = 0;
         for (let hour = BUSINESS_START; hour < BUSINESS_END; hour++) {
             for (let min = 0; min < 60; min += 30) {
                 const hourStr = String(hour).padStart(2, '0') + ':' + String(min).padStart(2, '0');
@@ -3147,6 +3148,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     cell.className = 'calendar-cell';
                     cell.dataset.hour = hourStr;
                     cell.dataset.profId = p.id;
+                    cell.style.zIndex = 100 - rowIndex;
 
                     // Clique na célula vazia abre modal de novo agendamento com pré-seleção se não estiver no passado
                     cell.addEventListener('click', (e) => {
@@ -3176,6 +3178,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     grid.appendChild(cell);
                 });
+                rowIndex++;
             }
         }
     }
