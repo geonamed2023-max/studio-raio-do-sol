@@ -1,4 +1,4 @@
-import { apiRequest } from "./api-config.js";
+import { apiRequest, API_BASE_URL } from "./api-config.js";
 
 /* ============================================
    STUDIO RAIO DO SOL - Dashboard Interactivity
@@ -8152,6 +8152,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Rebuild notifications list based on loaded appointments
             rebuildNotifications();
 
+            // Inicia conexão com servidor para atualizações em tempo real (SSE)
+            initRealTimeUpdates();
+
             console.log('%c✅ Dashboard inicializado com PostgreSQL', 'color: #4CAF50; font-size: 14px;');
             
         } catch (error) {
@@ -9076,6 +9079,56 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
+    }
+
+    async function refreshActivePageData() {
+        try {
+            appointments = await loadAppointments();
+
+            // 1. Agenda Page: re-render grid and calendar appointments
+            const pageAgenda = document.getElementById('page-agenda');
+            if (pageAgenda && !pageAgenda.classList.contains('hidden')) {
+                const filterProf = document.getElementById('filterProfissional');
+                const currentProfId = filterProf ? filterProf.value : null;
+                renderCalendarGrid(currentProfId);
+                renderAppointments();
+                initStatsAnimation();
+            }
+
+            // 2. Relatorios Page: re-render reports
+            const pageRelatorios = document.getElementById('page-relatorios');
+            if (pageRelatorios && !pageRelatorios.classList.contains('hidden')) {
+                renderReportsPage();
+            }
+
+            // 3. Pagamentos Page: re-render payouts
+            const pagePagamentos = document.getElementById('page-pagamentos');
+            if (pagePagamentos && !pagePagamentos.classList.contains('hidden')) {
+                renderPaymentsPage();
+            }
+
+            // 4. Rebuild notifications bell/list
+            rebuildNotifications();
+        } catch (e) {
+            console.error("[SSE] Erro ao atualizar os dados em tempo real:", e);
+        }
+    }
+
+    function initRealTimeUpdates() {
+        const sseUrl = `${API_BASE_URL}/live-updates`;
+        console.log(`[SSE] Conectando ao serviço de atualizações em tempo real em: ${sseUrl}`);
+        const eventSource = new EventSource(sseUrl);
+
+        eventSource.onmessage = (event) => {
+            if (event.data === 'refresh') {
+                console.log('[SSE] Sinal de atualização recebido do servidor. Recarregando dados...');
+                refreshActivePageData();
+            }
+        };
+
+        eventSource.onerror = (error) => {
+            console.warn('[SSE] Erro ou desconexão no canal de tempo real. Reconectando automaticamente...', error);
+        };
     }
 
 });

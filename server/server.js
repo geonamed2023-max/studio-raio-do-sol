@@ -53,6 +53,42 @@ function authenticateToken(req, res, next) {
 }
 
 // ==========================================
+// ARQUITETURA EM TEMPO REAL (Server-Sent Events)
+// ==========================================
+let sseClients = [];
+
+// Envia heartbeat a cada 30 segundos para manter conexões ativas e evitar timeouts de proxy
+setInterval(() => {
+    sseClients.forEach(client => {
+        client.write(': heartbeat\n\n');
+    });
+}, 30000);
+
+// Notifica todos os clientes conectados para recarregarem os dados
+function broadcastUpdate() {
+    console.log(`[SSE] Disparando evento de atualização para ${sseClients.length} clientes.`);
+    sseClients.forEach(client => {
+        client.write('data: refresh\n\n');
+    });
+}
+
+// Rota de Inscrição em Eventos de Tempo Real (Sem autenticação direta no SSE pois o payload não contém dados sensíveis)
+app.get('/api/live-updates', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Evita buffer no Nginx/Render
+
+    // Conexão estabelecida com sucesso
+    res.write(': ok\n\n');
+    sseClients.push(res);
+
+    req.on('close', () => {
+        sseClients = sseClients.filter(client => client !== res);
+    });
+});
+
+// ==========================================
 // ROTAS DE AUTENTICAÇÃO
 // ==========================================
 
@@ -762,6 +798,7 @@ app.post('/api/appointments/sync', authenticateToken, async (req, res) => {
         }
         
         await client.query('COMMIT');
+        broadcastUpdate();
         res.json({ success: true });
     } catch (err) {
         await client.query('ROLLBACK');
