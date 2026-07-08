@@ -265,6 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
     /** Appointments storage (in-memory, persisted to localStorage) */
     let appointments = [];
     let displayProfs = [];
+    let knownNotifIds = null;
 
     /** Clients storage (persisted to localStorage) */
     let clients = [];
@@ -3650,6 +3651,58 @@ document.addEventListener('DOMContentLoaded', () => {
         return dateStr;
     }
 
+    /** Helper to format Date or ISO string to absolute BR date/time format (DD/MM/YYYY às HH:MM) */
+    function formatDateTimeBR(dateParam) {
+        if (!dateParam) return '';
+        const date = typeof dateParam === 'object' ? dateParam : new Date(dateParam);
+        if (isNaN(date.getTime())) return '';
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${day}/${month}/${year} às ${hours}:${minutes}`;
+    }
+
+    /** Plays a high-quality Web Audio API chime sound to alert user of real-time changes */
+    function playNotificationSound() {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            const now = ctx.currentTime;
+            
+            // Double tone premium sound
+            // Tone 1
+            const osc1 = ctx.createOscillator();
+            const gain1 = ctx.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(587.33, now); // D5
+            osc1.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
+            gain1.gain.setValueAtTime(0.12, now);
+            gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+            osc1.connect(gain1);
+            gain1.connect(ctx.destination);
+            osc1.start(now);
+            osc1.stop(now + 0.6);
+            
+            // Tone 2
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.type = 'triangle';
+            osc2.frequency.setValueAtTime(440, now); // A4
+            osc2.frequency.exponentialRampToValueAtTime(587.33, now + 0.15); // D5
+            gain2.gain.setValueAtTime(0.08, now);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.start(now);
+            osc2.stop(now + 0.8);
+        } catch (e) {
+            console.warn('[AudioContext] Could not play notification chime:', e);
+        }
+    }
+
     /** Helper to get relative time string */
     function timeAgo(dateParam) {
         if (!dateParam) return 'agora mesmo';
@@ -3695,13 +3748,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const readNotifIds = JSON.parse(localStorage.getItem('raiosol_read_notifications') || '[]');
 
+        // Track new dynamic notification alerts
+        const currentUnreadIds = filteredAppts
+            .filter(a => !readNotifIds.includes(String(a.id)))
+            .map(a => String(a.id));
+
+        if (knownNotifIds === null) {
+            // First load: initialize known list
+            knownNotifIds = [...currentUnreadIds];
+        } else {
+            // Subsequent loads: check for brand new unread notifications
+            const newUnreadIds = currentUnreadIds.filter(id => !knownNotifIds.includes(id));
+            if (newUnreadIds.length > 0) {
+                newUnreadIds.forEach(id => {
+                    const appt = filteredAppts.find(a => String(a.id) === id);
+                    if (appt) {
+                        const dateStr = formatStringDateBR(appt.date);
+                        const toastMsg = `Novo agendamento: ${appt.createdBy} agendou ${appt.client} para ${appt.serviceName} em ${dateStr} às ${appt.timeStart}`;
+                        showToast(toastMsg, 'info', 6000);
+                    }
+                });
+                playNotificationSound();
+                knownNotifIds = [...currentUnreadIds];
+            }
+        }
+
         notifData = filteredAppts.map(appt => {
             const dateStr = formatStringDateBR(appt.date);
             const msg = `${appt.createdBy} agendou ${appt.client} para ${appt.serviceName} em ${dateStr} às ${appt.timeStart}`;
+            
+            // Show both relative and absolute date/time
+            const timeLabel = appt.createdAt 
+                ? `${timeAgo(appt.createdAt)} (${formatDateTimeBR(appt.createdAt)})`
+                : 'agora mesmo';
+
             return {
                 id: appt.id,
                 message: msg,
-                time: timeAgo(appt.createdAt),
+                time: timeLabel,
                 read: readNotifIds.includes(String(appt.id))
             };
         });

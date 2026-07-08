@@ -709,6 +709,7 @@ app.get('/api/appointments', authenticateToken, async (req, res) => {
             status: row.status,
             payoutInvoiced: row.payout_invoiced,
             createdBy: row.created_by,
+            createdAt: row.created_at,
             isMutual: row.is_mutual || false,
             professionalId2: row.professional2_id || null,
             professionalName2: row.professional2_name || '',
