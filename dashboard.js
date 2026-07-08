@@ -357,6 +357,14 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function getStatsConfig() {
         const todayStr = toISODateString(new Date());
+        const selectedYear = currentDate.getFullYear();
+        const selectedMonth = currentDate.getMonth() + 1; // 1-indexed
+
+        const isApptInSelectedMonth = (appt) => {
+            if (!appt.date) return false;
+            const [y, m] = appt.date.split('-').map(Number);
+            return y === selectedYear && m === selectedMonth;
+        };
 
         if (session && session.role === 'funcionario' && employeeProf) {
             const myAppts = appointments.filter(a => 
@@ -364,8 +372,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 (a.isMutual && String(a.professionalId2) === String(employeeProf.id))
             );
             const myTodayAppts = myAppts.filter(a => a.date === todayStr && a.status !== 'Cancelado');
-            const myActiveAppts = myAppts.filter(a => a.status !== 'Cancelado');
-            const myCompleted = myAppts.filter(a => a.status === 'Concluído');
+            const myActiveAppts = myAppts.filter(a => isApptInSelectedMonth(a) && a.status !== 'Cancelado');
+            const myCompleted = myAppts.filter(a => isApptInSelectedMonth(a) && a.status === 'Concluído');
             
             const commissionPercent = employeeProf.percentual || 30;
             let totalBilling = 0;
@@ -401,11 +409,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Admin view
         const activeApptsToday = appointments.filter(a => a.date === todayStr && a.status !== 'Cancelado');
-        const totalActiveAppts = appointments.filter(a => a.status !== 'Cancelado').length;
+        const totalActiveAppts = appointments.filter(a => isApptInSelectedMonth(a) && a.status !== 'Cancelado').length;
         
-        // Sum price of active appointments in system
+        // Sum price of active appointments in system for selected month
         const receitaEstimada = appointments
-            .filter(a => a.status !== 'Cancelado')
+            .filter(a => isApptInSelectedMonth(a) && a.status !== 'Cancelado')
             .reduce((sum, a) => sum + (parseFloat(a.servicePrice) || 0), 0);
 
         // Sync active professionals count
@@ -1165,6 +1173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateDateDisplay();
         updateCalendarWeek(currentWeekOffset);
         renderAppointments();
+        initStatsAnimation();
     }
 
     /** Go to previous day */
@@ -4326,6 +4335,17 @@ document.addEventListener('DOMContentLoaded', () => {
     /** Update employee metrics on dashboard */
     function updateEmployeeStatsCards() {
         const todayStr = toISODateString(new Date());
+        const selectedYear = currentDate.getFullYear();
+        const selectedMonth = currentDate.getMonth() + 1; // 1-indexed
+
+        const isApptInSelectedMonth = (appt) => {
+            if (!appt.date) return false;
+            const [y, m] = appt.date.split('-').map(Number);
+            return y === selectedYear && m === selectedMonth;
+        };
+
+        const monthName = currentDate.toLocaleString('pt-BR', { month: 'long' });
+        const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
         
         // Calculate employee-only metrics
         const myAppts = appointments.filter(a => 
@@ -4333,8 +4353,8 @@ document.addEventListener('DOMContentLoaded', () => {
             (a.isMutual && String(a.professionalId2) === String(employeeProf.id))
         );
         const myTodayAppts = myAppts.filter(a => a.date === todayStr && a.status !== 'Cancelado');
-        const myActiveAppts = myAppts.filter(a => a.status !== 'Cancelado');
-        const myCompleted = myAppts.filter(a => a.status === 'Concluído');
+        const myActiveAppts = myAppts.filter(a => isApptInSelectedMonth(a) && a.status !== 'Cancelado');
+        const myCompleted = myAppts.filter(a => isApptInSelectedMonth(a) && a.status === 'Concluído');
         
         const commissionPercent = employeeProf.percentual || 30;
         let totalBilling = 0;
@@ -4371,7 +4391,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const lblComissao = document.querySelector('#statProfissionais .stat-card-label');
         const iconComissao = document.querySelector('#statProfissionais .stat-card-icon');
         if (valComissao) valComissao.textContent = formatCurrencyBRL(totalCommission);
-        if (lblComissao) lblComissao.textContent = `Minha Comissão (${commissionPercent}%)`;
+        if (lblComissao) lblComissao.textContent = `Minha Comissão (${capitalizedMonth}) (${commissionPercent}%)`;
         if (iconComissao) {
             iconComissao.style.background = 'rgba(76,175,80,0.1)';
             iconComissao.style.color = '#4CAF50';
@@ -4382,17 +4402,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const valServicos = document.querySelector('#statServicos .stat-card-value');
         const lblServicos = document.querySelector('#statServicos .stat-card-label');
         if (valServicos) valServicos.textContent = myActiveAppts.length;
-        if (lblServicos) lblServicos.textContent = 'Meus Serviços Agendados';
+        if (lblServicos) lblServicos.textContent = `Meus Serviços (${capitalizedMonth})`;
 
         // Update Receita card to personal estimated revenue
         const valReceita = document.querySelector('#statReceita .stat-card-value');
         const lblReceita = document.querySelector('#statReceita .stat-card-label');
         if (valReceita) valReceita.textContent = formatCurrencyBRL(myReceitaEstimada);
-        if (lblReceita) lblReceita.textContent = 'Minha Receita Estimada';
+        if (lblReceita) lblReceita.textContent = `Minha Receita (${capitalizedMonth})`;
     }
 
     /** Update admin metrics labels and icons on dashboard */
     function updateAdminStatsCards() {
+        const monthName = currentDate.toLocaleString('pt-BR', { month: 'long' });
+        const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+
         const lblAgendamentos = document.querySelector('#statAgendamentos .stat-card-label');
         if (lblAgendamentos) lblAgendamentos.textContent = 'Agendamentos Hoje:';
 
@@ -4413,10 +4436,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const lblServicos = document.querySelector('#statServicos .stat-card-label');
-        if (lblServicos) lblServicos.textContent = 'Serviços Agendados:';
+        if (lblServicos) lblServicos.textContent = `Serviços Agendados (${capitalizedMonth}):`;
 
         const lblReceita = document.querySelector('#statReceita .stat-card-label');
-        if (lblReceita) lblReceita.textContent = 'Receita Estimada:';
+        if (lblReceita) lblReceita.textContent = `Receita Estimada (${capitalizedMonth}):`;
     }
 
     /** Professionals Page rendering (Active list + approvals) */
