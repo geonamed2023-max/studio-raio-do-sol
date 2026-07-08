@@ -2248,6 +2248,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (clientInput && dropdown) {
 
+            const normalizeString = (str) => {
+                if (!str) return '';
+                return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+            };
+
             const selectClient = (clientObj) => {
                 clientInput.value = clientObj.name;
                 
@@ -2302,14 +2307,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const renderAutocomplete = (query) => {
-                query = query.toLowerCase().trim();
-                if (!query) {
+                const normalizedQuery = normalizeString(query);
+                if (!normalizedQuery) {
                     dropdown.style.display = 'none';
                     return;
                 }
 
                 const matches = clients
-                    .filter(c => c.name.toLowerCase().includes(query))
+                    .filter(c => normalizeString(c.name).includes(normalizedQuery))
                     .slice(0, 5);
 
                 activeItemIndex = -1;
@@ -2394,7 +2399,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (e.key === 'Enter') {
                         if (activeItemIndex !== -1) {
                             e.preventDefault();
-                            const matches = clients.filter(c => c.name.toLowerCase().includes(clientInput.value.toLowerCase().trim())).slice(0, 5);
+                            const matches = clients.filter(c => normalizeString(c.name).includes(normalizeString(clientInput.value))).slice(0, 5);
                             const clientObj = matches[activeItemIndex];
                             if (clientObj) {
                                 selectClient(clientObj);
@@ -3028,6 +3033,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 professionalInitials2: prof2 ? prof2.initials : '',
                 professionalColor2: prof2 ? prof2.color : ''
             };
+
+            // Auto-register client if not already in clients list (case-insensitive)
+            const clientNameClean = client.value.trim();
+            const clientExists = clients.some(c => c.name.toLowerCase().trim() === clientNameClean.toLowerCase());
+            if (!clientExists) {
+                const newClientObj = {
+                    id: 'cli_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                    name: clientNameClean,
+                    phone: '',
+                    level: 'Novo',
+                    avatar: null,
+                    createdAt: new Date().toISOString()
+                };
+                clients.push(newClientObj);
+                console.log(`[Autoregister] Client "${clientNameClean}" auto-registered locally.`);
+            }
 
             // Save
             appointments.push(newAppointment);
