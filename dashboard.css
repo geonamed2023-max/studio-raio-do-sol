@@ -10126,4 +10126,13 @@ body.dark-mode .preloader-particles span {
   100% { transform: translateY(-120px) translateX(15px) scale(1.2); opacity: 0; }
 }
 
+/* Agenda Bloqueada (Estilos Adicionais) */
+body.dark-mode .appt-blocked {
+  background-color: #242220 !important;
+  color: #9e9e9e !important;
+  border-left: 3px solid #6b7280 !important;
+  background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.03) 10px, transparent 10px, transparent 20px) !important;
+}
+
+
 

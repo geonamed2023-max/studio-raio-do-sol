@@ -3363,6 +3363,8 @@ function closeAppointmentModal() {
             const cell = document.createElement('div');
             cell.className = 'calendar-header-cell';
             cell.dataset.profId = p.id;
+            cell.style.cursor = 'pointer';
+            cell.title = 'Clique para bloquear a agenda deste profissional';
             
             const avatarHTML = p.avatar 
                 ? `<img src="${p.avatar}" alt="Foto ${p.name}" class="professional-avatar-img" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-bottom: 4px; border: 1px solid var(--gold-border);">`
@@ -3370,8 +3372,28 @@ function closeAppointmentModal() {
                 
             cell.innerHTML = `
                 ${avatarHTML}
-                <div class="calendar-grid__prof-name" style="font-size: 14px; font-weight: 600;">${p.name}</div>
+                <div class="calendar-grid__prof-name" style="font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 4px; justify-content: center; width: 100%;">
+                    ${p.name}
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="opacity: 0.5; margin-left: 2px; flex-shrink: 0;">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </div>
             `;
+
+            // Click handler to open blocking modal
+            cell.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Admin can block any, employee can only block their own
+                const currentSession = JSON.parse(sessionStorage.getItem('raiosol_session') || '{}');
+                const myProf = professionals.find(pr => pr.name.toLowerCase() === currentSession.name.toLowerCase());
+                if (currentSession.role !== 'admin' && (!myProf || myProf.id !== p.id)) {
+                    showToast('Você só pode bloquear sua própria agenda.', 'warning');
+                    return;
+                }
+                openBlockScheduleModal(p);
+            });
+
             grid.appendChild(cell);
         });
 
@@ -3610,8 +3632,29 @@ function closeAppointmentModal() {
                     }
                 }
 
+                const isBlocked = appt.status === 'Bloqueado';
                 const apptBlock = document.createElement('div');
-                apptBlock.className = `appointment-block appointment--${variant}`;
+                
+                if (isBlocked) {
+                    apptBlock.className = 'appointment-block appt-blocked';
+                    apptBlock.style.backgroundColor = '#e5e7eb';
+                    apptBlock.style.color = '#4b5563';
+                    apptBlock.style.borderLeft = '3px solid #9ca3af';
+                    apptBlock.style.backgroundImage = 'repeating-linear-gradient(45deg, rgba(156,163,175,0.06), rgba(156,163,175,0.06) 10px, transparent 10px, transparent 20px)';
+                    apptBlock.style.cursor = 'pointer';
+                } else {
+                    apptBlock.className = `appointment-block appointment--${variant}`;
+                    if (appt.status === 'Concluído') {
+                        apptBlock.classList.add('appt-completed');
+                    }
+                    
+                    // Apply randomized theme color based on ID
+                    const theme = getApptColor(appt.id);
+                    apptBlock.style.backgroundColor = theme.bg;
+                    apptBlock.style.color = theme.text;
+                    apptBlock.style.borderLeft = `3px solid ${theme.border}`;
+                }
+
                 apptBlock.dataset.appointment = appt.id;
                 apptBlock.dataset.service = appt.serviceName;
                 apptBlock.dataset.professional = appt.isMutual 
@@ -3619,18 +3662,8 @@ function closeAppointmentModal() {
                     : appt.professionalName;
                 apptBlock.dataset.client = appt.client;
                 apptBlock.dataset.time = `${appt.timeStart} - ${appt.timeEnd}`;
-                apptBlock.dataset.price = parseFloat(appt.servicePrice) === 0 ? 'A combinar' : formatCurrencyBRL(appt.servicePrice);
+                apptBlock.dataset.price = isBlocked ? '0' : (parseFloat(appt.servicePrice) === 0 ? 'A combinar' : formatCurrencyBRL(appt.servicePrice));
                 apptBlock.dataset.status = appt.status || 'Agendado';
-
-                if (appt.status === 'Concluído') {
-                    apptBlock.classList.add('appt-completed');
-                }
-
-                // Apply randomized theme color based on ID
-                const theme = getApptColor(appt.id);
-                apptBlock.style.backgroundColor = theme.bg;
-                apptBlock.style.color = theme.text;
-                apptBlock.style.borderLeft = `3px solid ${theme.border}`;
                 apptBlock.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
 
                 // Absolute positioning to overflow multiple 30-minute cells dynamically (side-by-side overlap support)
@@ -3662,7 +3695,25 @@ function closeAppointmentModal() {
                 const mutualBadge = appt.isMutual ? '<span style="background: rgba(255,255,255,0.25); font-size: 11px; padding: 1px 4px; border-radius: 4px; font-weight: 700; margin-right: 4px; letter-spacing: 0.5px;">MÚTUO</span>' : '';
 
                 // Adapt content and layout based on block height (duration)
-                if (finalDuration <= 15) {
+                if (isBlocked) {
+                    apptBlock.style.padding = '4px 8px';
+                    apptBlock.style.display = 'flex';
+                    apptBlock.style.flexDirection = 'column';
+                    apptBlock.style.justifyContent = 'center';
+                    apptBlock.innerHTML = `
+                        <div style="width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: inherit;">
+                            <strong style="font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; gap: 4px; color: inherit;">
+                                🔒 BLOQUEIO
+                            </strong>
+                            <span style="font-weight: 600; font-size: 13px; display: block; color: inherit; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                ${appt.serviceName}
+                            </span>
+                            <span style="font-size: 11px; opacity: 0.85; display: block; color: inherit;">
+                                ${appt.timeStart} - ${appt.timeEnd}
+                            </span>
+                        </div>
+                    `;
+                } else if (finalDuration <= 15) {
                     apptBlock.style.padding = '2px 6px';
                     apptBlock.innerHTML = `
                         <div style="display: flex; align-items: center; gap: 4px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; color: inherit; height: 100%;">
@@ -3768,15 +3819,17 @@ function closeAppointmentModal() {
         const popover = document.createElement('div');
         popover.className = 'appt-popover';
 
+        const isBlocked = anchor.classList.contains('appt-blocked');
+
         popover.innerHTML = `
-            <div class="popover-header">
-                <span class="popover-service">${data.service}</span>
-                <button class="popover-close" aria-label="Fechar">&times;</button>
+            <div class="popover-header" style="${isBlocked ? 'background: #9e9e9e; color: #fff;' : ''}">
+                <span class="popover-service">${isBlocked ? 'Agenda Bloqueada' : data.service}</span>
+                <button class="popover-close" aria-label="Fechar" style="${isBlocked ? 'color: #fff; opacity: 0.8;' : ''}">&times;</button>
             </div>
             <div class="popover-body">
                 <div class="popover-row">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    <span>${data.client}</span>
+                    <span>${isBlocked ? 'Status: Indisponível' : data.client}</span>
                 </div>
                 <div class="popover-row">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -3786,10 +3839,17 @@ function closeAppointmentModal() {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                     <span>${data.time}</span>
                 </div>
+                ${isBlocked ? `
+                <div class="popover-row">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <span>Motivo: ${data.service}</span>
+                </div>
+                ` : `
                 <div class="popover-row popover-price">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     <span>${data.price}</span>
                 </div>
+                `}
             </div>
         `;
 
@@ -3875,6 +3935,165 @@ function closeAppointmentModal() {
         .popover-price span { font-weight: 600; color: #C9A84C; font-size: 0.95rem; }
     `;
     document.head.appendChild(popoverStyles);
+
+    /** Open block schedule modal */
+    function openBlockScheduleModal(p) {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.style.zIndex = '9999';
+
+        const currentDateStr = document.getElementById('datePicker')?.value || toISODateString(currentDate);
+
+        overlay.innerHTML = `
+            <div class="modal-novo-agendamento" style="max-width: 420px; padding: 24px; border: 1.5px solid var(--gold-300); font-family: var(--font-body); display: block;">
+                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--neutral-100); padding-bottom: 12px; margin-bottom: 20px;">
+                    <h3 style="font-family: var(--font-display); font-size: 1.35rem; color: var(--neutral-900); font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        🔒 Bloquear Agenda
+                    </h3>
+                    <button class="btn-close-block-modal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--neutral-400);">&times;</button>
+                </div>
+                
+                <p style="font-size: 0.9rem; color: var(--neutral-500); margin: 0 0 16px; text-align: left; line-height: 1.4;">
+                    Bloqueie horários ou dias inteiros para o profissional <strong>${p.name}</strong> para impedir novos agendamentos nesta data.
+                </p>
+
+                <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--neutral-700); margin-bottom: 6px;">Data do Bloqueio</label>
+                    <input type="date" id="blockDate" value="${currentDateStr}" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1.5px solid var(--neutral-200); font-size: 0.92rem; box-sizing: border-box;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--neutral-700); margin-bottom: 6px;">Período do Bloqueio</label>
+                    <select id="blockPeriod" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1.5px solid var(--neutral-200); font-size: 0.92rem; box-sizing: border-box; background: #fff; color: inherit;">
+                        <option value="dia">Dia Inteiro (08:00 - 20:00)</option>
+                        <option value="periodo">Horário Específico</option>
+                    </select>
+                </div>
+
+                <div id="blockTimeFields" style="display: none; gap: 12px; margin-bottom: 16px; text-align: left;">
+                    <div style="flex: 1;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--neutral-700); margin-bottom: 6px;">Hora Início</label>
+                        <input type="time" id="blockTimeStart" value="08:00" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1.5px solid var(--neutral-200); font-size: 0.92rem; box-sizing: border-box;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--neutral-700); margin-bottom: 6px;">Hora Fim</label>
+                        <input type="time" id="blockTimeEnd" value="20:00" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1.5px solid var(--neutral-200); font-size: 0.92rem; box-sizing: border-box;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 24px; text-align: left;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--neutral-700); margin-bottom: 6px;">Motivo / Tipo de Bloqueio</label>
+                    <select id="blockReasonSelect" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1.5px solid var(--neutral-200); font-size: 0.92rem; box-sizing: border-box; background: #fff; margin-bottom: 8px; color: inherit;">
+                        <option value="Férias">Férias</option>
+                        <option value="Folga">Folga / Descanso</option>
+                        <option value="Almoço">Horário de Almoço</option>
+                        <option value="Compromisso">Compromisso Pessoal</option>
+                        <option value="Indisponível">Indisponível (Geral)</option>
+                        <option value="Outro">Outro Motivo...</option>
+                    </select>
+                    <input type="text" id="blockReasonText" placeholder="Digite o motivo personalizado..." style="display: none; width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1.5px solid var(--neutral-200); font-size: 0.92rem; box-sizing: border-box; color: inherit; background: transparent;">
+                </div>
+
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button class="btn btn-secondary btn-cancel-block" style="padding: 10px 18px; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; border: 1.5px solid var(--neutral-200); background: #fff; color: var(--neutral-700); font-size: 0.85rem;">Cancelar</button>
+                    <button class="btn btn-primary btn-confirm-block" style="padding: 10px 18px; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; border: none; background: #E53935; color: #fff; font-size: 0.85rem; box-shadow: 0 4px 12px rgba(229, 57, 53, 0.25);">Bloquear</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+        setTimeout(() => overlay.classList.add('active'), 20);
+
+        const close = () => {
+            overlay.classList.remove('active');
+            setTimeout(() => overlay.remove(), 350);
+        };
+
+        const closeBtn = overlay.querySelector('.btn-close-block-modal');
+        const cancelBtn = overlay.querySelector('.btn-cancel-block');
+        const confirmBtn = overlay.querySelector('.btn-confirm-block');
+        
+        const periodSelect = overlay.querySelector('#blockPeriod');
+        const timeFields = overlay.querySelector('#blockTimeFields');
+        
+        const reasonSelect = overlay.querySelector('#blockReasonSelect');
+        const reasonText = overlay.querySelector('#blockReasonText');
+
+        closeBtn.addEventListener('click', close);
+        cancelBtn.addEventListener('click', close);
+
+        periodSelect.addEventListener('change', () => {
+            if (periodSelect.value === 'periodo') {
+                timeFields.style.display = 'flex';
+            } else {
+                timeFields.style.display = 'none';
+            }
+        });
+
+        reasonSelect.addEventListener('change', () => {
+            if (reasonSelect.value === 'Outro') {
+                reasonText.style.display = 'block';
+                reasonText.focus();
+            } else {
+                reasonText.style.display = 'none';
+            }
+        });
+
+        confirmBtn.addEventListener('click', async () => {
+            const dateVal = overlay.querySelector('#blockDate').value;
+            if (!dateVal) {
+                showToast('Escolha a data do bloqueio.', 'warning');
+                return;
+            }
+
+            let startVal = '08:00';
+            let endVal = '20:00';
+
+            if (periodSelect.value === 'periodo') {
+                startVal = overlay.querySelector('#blockTimeStart').value;
+                endVal = overlay.querySelector('#blockTimeEnd').value;
+                if (!startVal || !endVal) {
+                    showToast('Selecione os horários de início e fim.', 'warning');
+                    return;
+                }
+                if (startVal >= endVal) {
+                    showToast('O horário de início deve ser anterior ao de fim.', 'warning');
+                    return;
+                }
+            }
+
+            let reasonVal = reasonSelect.value;
+            if (reasonVal === 'Outro') {
+                reasonVal = reasonText.value.trim() || 'Bloqueio';
+            }
+
+            // Create new block object
+            const blockObj = {
+                id: 'block_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                professionalId: p.id,
+                professionalName: p.name,
+                professionalInitials: p.initials,
+                professionalColor: p.color,
+                client: 'AGENDA BLOQUEADA',
+                phone: '',
+                serviceId: null,
+                serviceName: reasonVal,
+                servicePrice: 0,
+                date: dateVal,
+                timeStart: startVal,
+                timeEnd: endVal,
+                status: 'Bloqueado',
+                payoutInvoiced: false,
+                createdBy: session.name || 'Sistema',
+                isMutual: false
+            };
+
+            appointments.push(blockObj);
+            await saveAppointments();
+            close();
+            renderAppointments();
+        });
+    }
 
     // ============================================
     // SECTION 13: NOTIFICATIONS
@@ -7394,6 +7613,37 @@ function closeAppointmentModal() {
         const actionPanel = document.createElement('div');
         actionPanel.className = 'popover-actions';
         actionPanel.style.cssText = 'display: flex; gap: 8px; margin-top: 14px; border-top: 1px solid rgba(0,0,0,0.06); padding-top: 12px; flex-wrap: wrap;';
+
+        if (apptObj.status === 'Bloqueado') {
+            actionPanel.innerHTML = `
+                <button class="btn btn-secondary pop-btn-unblock" style="flex: 1; font-size: 13px; padding: 6px; border: 1px solid #EF5350; color: #EF5350; background: transparent; font-weight: 600; cursor: pointer;">REMOVER BLOQUEIO</button>
+            `;
+            body.appendChild(actionPanel);
+            
+            const unblockBtn = actionPanel.querySelector('.pop-btn-unblock');
+            if (unblockBtn) {
+                unblockBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const currentSession = JSON.parse(sessionStorage.getItem('raiosol_session') || '{}');
+                    if (currentSession.role !== 'admin' && String(apptObj.professionalName).toLowerCase() !== String(currentSession.name).toLowerCase()) {
+                        showToast('Você só pode remover seus próprios bloqueios.', 'warning');
+                        return;
+                    }
+                    showConfirmDialog({
+                        title: 'Remover Bloqueio de Agenda',
+                        message: `Deseja remover o bloqueio de agenda de <strong>${apptObj.professionalName}</strong> no dia <strong>${formatStringDateBR(apptObj.date)}</strong>?`,
+                        confirmText: 'Remover',
+                        onConfirm: async () => {
+                            appointments = appointments.filter(a => String(a.id) !== String(apptObj.id));
+                            await saveAppointments();
+                            closePopover();
+                            renderAppointments();
+                        }
+                    });
+                });
+            }
+            return;
+        }
 
         const isCompletedOrCancelled = apptObj.status === 'Concluído' || apptObj.status === 'Cancelado';
 
