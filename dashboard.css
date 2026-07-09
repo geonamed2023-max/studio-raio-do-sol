@@ -9871,3 +9871,167 @@ body.user-adriana-cruz [data-page="relatorios"] {
   }
 }
 
+/* ============================================================
+   PRELOADER — Tela de Carregamento Premium
+   ============================================================ */
+.app-preloader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #111827; /* Fundo escuro premium */
+  color: #ffffff;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  overflow: hidden;
+}
+
+.app-preloader.fade-out {
+  opacity: 0;
+  transform: scale(1.05);
+  pointer-events: none;
+}
+
+.preloader-inner {
+  text-align: center;
+  max-width: 320px;
+  position: relative;
+  z-index: 2;
+}
+
+.preloader-logo-wrap {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 24px;
+}
+
+.preloader-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
+  border: 2px solid rgba(201, 168, 76, 0.4);
+  background: #1f2937;
+  padding: 10px;
+  position: relative;
+  z-index: 2;
+  animation: preloaderPulse 2s infinite ease-in-out;
+}
+
+.preloader-logo-glow {
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(circle, rgba(201, 168, 76, 0.25) 0%, rgba(201, 168, 76, 0) 70%);
+  border-radius: 50%;
+  z-index: 1;
+  animation: preloaderGlowPulse 2s infinite ease-in-out;
+}
+
+.preloader-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #C9A84C; /* Cor Dourado Premium */
+  margin: 0 0 6px;
+  letter-spacing: 0.5px;
+}
+
+.preloader-subtitle {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 0 0 32px;
+}
+
+/* Barra de progresso linear fina */
+.preloader-bar-wrap {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.preloader-bar {
+  height: 100%;
+  width: 15%; /* Inicia com um valor de conexão */
+  background: linear-gradient(90deg, #C9A84C, #e5c060);
+  border-radius: 2px;
+  transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 0 8px rgba(201, 168, 76, 0.5);
+}
+
+.preloader-status {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+  margin: 0;
+  animation: preloaderTextPulse 1.5s infinite alternate;
+}
+
+/* Partículas animadas de fundo */
+.preloader-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.preloader-particles span {
+  position: absolute;
+  display: block;
+  width: 4px;
+  height: 4px;
+  background: rgba(201, 168, 76, 0.15);
+  border-radius: 50%;
+  animation: moveParticle 8s infinite linear;
+}
+
+/* Configuração de Posições e Tempos das partículas */
+.preloader-particles span:nth-child(1) { top: 20%; left: 15%; animation-duration: 6s; }
+.preloader-particles span:nth-child(2) { top: 60%; left: 80%; animation-duration: 9s; }
+.preloader-particles span:nth-child(3) { top: 80%; left: 30%; animation-duration: 7s; }
+.preloader-particles span:nth-child(4) { top: 30%; left: 70%; animation-duration: 8s; }
+.preloader-particles span:nth-child(5) { top: 10%; left: 60%; animation-duration: 10s; }
+.preloader-particles span:nth-child(6) { top: 75%; left: 10%; animation-duration: 5s; }
+.preloader-particles span:nth-child(7) { top: 45%; left: 40%; animation-duration: 9s; }
+.preloader-particles span:nth-child(8) { top: 90%; left: 90%; animation-duration: 6s; }
+
+/* Animações e Keyframes */
+@keyframes preloaderPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+@keyframes preloaderGlowPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+@keyframes preloaderTextPulse {
+  0% { opacity: 0.4; }
+  100% { opacity: 0.8; }
+}
+
+@keyframes moveParticle {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-80px) rotate(360deg); opacity: 0; }
+}
+
+

@@ -8450,7 +8450,16 @@ function closeAppointmentModal() {
 
     /** Run all initializations */
     async function init() {
+        // Helper to update preloader status
+        const updatePreloader = (percentage, statusText) => {
+            const bar = document.getElementById('preloaderBar');
+            const status = document.getElementById('preloaderStatus');
+            if (bar) bar.style.width = `${percentage}%`;
+            if (status && statusText) status.textContent = statusText;
+        };
+
         // 1. Immediately clear static placeholder values while Firebase loads
+        updatePreloader(20, 'Carregando estrutura básica...');
         document.querySelectorAll('.stat-card-value').forEach(el => { el.textContent = '...'; });
 
         // 2. Initialize date navigation display immediately so it works and looks loaded
@@ -8515,6 +8524,7 @@ function closeAppointmentModal() {
 
         // 11. Async data loading from PostgreSQL
         try {
+            updatePreloader(45, 'Buscando agenda e profissionais...');
             const [profs, svcs, clis, appts] = await Promise.all([
                 loadProfessionals(),
                 loadServices(),
@@ -8525,6 +8535,8 @@ function closeAppointmentModal() {
             services = svcs;
             clients = clis;
             appointments = appts;
+
+            updatePreloader(75, 'Configurando painel e dados...');
 
             // Recalculate client levels based on their actual appointment frequency
             recalculateClientLevels();
@@ -8605,11 +8617,26 @@ function closeAppointmentModal() {
             // Inicia conexão com servidor para atualizações em tempo real (SSE)
             initRealTimeUpdates();
 
+            updatePreloader(100, 'Tudo pronto!');
             console.log('%c✅ Dashboard inicializado com PostgreSQL', 'color: #4CAF50; font-size: 14px;');
+
+            // Fade out preloader smoothly
+            const preloader = document.getElementById('appPreloader');
+            if (preloader) {
+                preloader.classList.add('fade-out');
+                setTimeout(() => preloader.remove(), 600);
+            }
             
         } catch (error) {
             console.error('Erro durante o carregamento do banco de dados:', error);
             showToast('Erro de conexão com o banco de dados. Verifique se o servidor está rodando.', 'error');
+            
+            // Remove preloader in case of error so screen isn't stuck
+            const preloader = document.getElementById('appPreloader');
+            if (preloader) {
+                preloader.classList.add('fade-out');
+                setTimeout(() => preloader.remove(), 600);
+            }
         }
     }
 

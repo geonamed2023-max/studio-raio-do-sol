@@ -38,7 +38,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Dashboard Styles -->
-    <link rel="stylesheet" href="dashboard.css?v=39">
+    <link rel="stylesheet" href="dashboard.css?v=40">
     
     <!-- Local file protocol blocker & guide overlay -->
     <script>
@@ -86,6 +86,38 @@
             document.body.classList.add('dark-mode');
         }
     </script>
+
+    <!-- ============================================
+         PRELOADER — Tela de carregamento premium
+         ============================================ -->
+    <div id="appPreloader" class="app-preloader">
+        <div class="preloader-inner">
+            <!-- Logo pulsante -->
+            <div class="preloader-logo-wrap">
+                <img src="assets/logo.png" alt="Studio Raio do Sol" class="preloader-logo"
+                     onerror="this.onerror=null;this.src='assets/logo-fallback.svg';">
+                <div class="preloader-logo-glow"></div>
+            </div>
+
+            <!-- Nome do salão -->
+            <h1 class="preloader-title">Studio Raio do Sol</h1>
+            <p class="preloader-subtitle">Painel Profissional</p>
+
+            <!-- Barra de progresso -->
+            <div class="preloader-bar-wrap">
+                <div class="preloader-bar" id="preloaderBar"></div>
+            </div>
+
+            <!-- Mensagem de status -->
+            <p class="preloader-status" id="preloaderStatus">Conectando ao servidor…</p>
+        </div>
+
+        <!-- Partículas decorativas de fundo -->
+        <div class="preloader-particles">
+            <span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+        </div>
+    </div>
     <div class="dashboard-layout">
 
         <!-- ============================================
@@ -1536,6 +1568,6 @@
     </div><!-- /.dashboard-layout -->
 
     <script type="module" src="api-config.js?v=9"></script>
-    <script type="module" src="dashboard.js?v=27"></script>
+    <script type="module" src="dashboard.js?v=28"></script>
 </body>
 </html>
