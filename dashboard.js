@@ -4627,6 +4627,10 @@ function closeAppointmentModal() {
                 session.name.toLowerCase().includes('georgiana') ||
                 session.name.toLowerCase().includes('francine')
             );
+            const isAdrianaCruz = session.name && (
+                session.name.toLowerCase().includes('adriana') &&
+                session.name.toLowerCase().includes('cruz')
+            );
             navItems.forEach(item => {
                 const page = item.dataset.page;
                 if (page === 'profissionais' || page === 'gastos' || page === 'vales') {
@@ -4634,6 +4638,9 @@ function closeAppointmentModal() {
                 }
                 if (page === 'massagem' && !isGeorgiana) {
                     item.style.display = 'none'; // Only Georgiana Francine sees massage tab
+                }
+                if (page === 'relatorios' && isAdrianaCruz) {
+                    item.style.display = 'none'; // Hide reports for Adriana Cruz
                 }
             });
         } else {
@@ -4740,6 +4747,25 @@ function closeAppointmentModal() {
         const lblReceita = document.querySelector('#statReceita .stat-card-label');
         if (valReceita) valReceita.textContent = formatCurrencyBRL(myReceitaEstimada);
         if (lblReceita) lblReceita.textContent = `Minha Receita (${capitalizedMonth})`;
+
+        // Lockdown metrics visibility for Adriana Cruz
+        const isAdrianaCruz = session.name && (
+            session.name.toLowerCase().includes('adriana') &&
+            session.name.toLowerCase().includes('cruz')
+        );
+        if (isAdrianaCruz) {
+            const cardReceita = document.getElementById('statReceita');
+            const cardServicos = document.getElementById('statServicos');
+            const cardComissao = document.getElementById('statProfissionais');
+            if (cardReceita) cardReceita.style.display = 'none';
+            if (cardServicos) cardServicos.style.display = 'none';
+            if (cardComissao) cardComissao.style.display = 'none';
+            
+            const statsGrid = document.getElementById('statsGrid');
+            if (statsGrid) {
+                statsGrid.style.gridTemplateColumns = '1fr';
+            }
+        }
     }
 
     /** Update admin metrics labels and icons on dashboard */
