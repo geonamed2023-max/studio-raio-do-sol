@@ -4089,7 +4089,7 @@ function closeAppointmentModal() {
             };
 
             appointments.push(blockObj);
-            await saveAppointments();
+            saveAppointments();
             close();
             renderAppointments();
         });
@@ -7633,9 +7633,9 @@ function closeAppointmentModal() {
                         title: 'Remover Bloqueio de Agenda',
                         message: `Deseja remover o bloqueio de agenda de <strong>${apptObj.professionalName}</strong> no dia <strong>${formatStringDateBR(apptObj.date)}</strong>?`,
                         confirmText: 'Remover',
-                        onConfirm: async () => {
+                        onConfirm: () => {
                             appointments = appointments.filter(a => String(a.id) !== String(apptObj.id));
-                            await saveAppointments();
+                            saveAppointments();
                             closePopover();
                             renderAppointments();
                         }
