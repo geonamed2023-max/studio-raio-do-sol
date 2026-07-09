@@ -2711,7 +2711,7 @@ body {
   border: 1.5px solid var(--gold-border) !important;
   border-left: 1.5px solid var(--gold-border) !important; /* Keep uniform border on left */
   border-radius: 12px !important;
-  padding: 16px 20px !important;
+  padding: 16px 56px 16px 20px !important;
   box-shadow: 0 2px 8px rgba(154, 123, 31, 0.02) !important;
   transition: all 0.25s ease !important;
 }
