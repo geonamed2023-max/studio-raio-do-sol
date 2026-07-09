@@ -2109,20 +2109,25 @@ img {
 }
 .topbar-badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 18px;
+  top: 2px;
+  right: 2px;
+  min-width: 18px;
   height: 18px;
-  border-radius: var(--radius-full);
+  padding: 0 4px;
+  border-radius: 9px;
   background: var(--error);
   color: #fff;
-  font-size: 14px;
+  font-size: 10px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #fff;
+  border: 1.5px solid #fff;
   line-height: 1;
+  box-sizing: border-box;
+}
+body.dark-mode .topbar-badge {
+  border-color: #1a1613; /* Combina com o fundo do botão da topbar no modo escuro */
 }
 .topbar-user-avatar {
   width: 36px;
