@@ -1014,6 +1014,259 @@ app.delete('/api/vales/:id', authenticateToken, async (req, res) => {
 });
 
 // ==========================================
+// ROTAS DE PACOTES DE MASSAGEM
+// ==========================================
+
+// --- PACOTES ---
+app.get('/api/massage-packages', authenticateToken, async (req, res) => {
+    try {
+        // Auto-create tables if they don't exist
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS massage_packages (
+                id VARCHAR(50) PRIMARY KEY,
+                client_name VARCHAR(100) NOT NULL,
+                client_phone VARCHAR(20),
+                massage_type VARCHAR(100) NOT NULL,
+                session_duration INTEGER NOT NULL DEFAULT 60,
+                total_sessions INTEGER NOT NULL DEFAULT 1,
+                completed_sessions INTEGER NOT NULL DEFAULT 0,
+                price NUMERIC(10, 2) NOT NULL DEFAULT 0,
+                payment_status VARCHAR(20) NOT NULL DEFAULT 'pendente',
+                status VARCHAR(20) NOT NULL DEFAULT 'ativo',
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS massage_sessions (
+                id VARCHAR(50) PRIMARY KEY,
+                package_id VARCHAR(50) NOT NULL REFERENCES massage_packages(id) ON DELETE CASCADE,
+                session_date VARCHAR(10) NOT NULL,
+                observations TEXT,
+                satisfaction INTEGER DEFAULT 5,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS massage_body_tracking (
+                id VARCHAR(50) PRIMARY KEY,
+                package_id VARCHAR(50) NOT NULL REFERENCES massage_packages(id) ON DELETE CASCADE,
+                measure_date VARCHAR(10) NOT NULL,
+                weight NUMERIC(5, 2),
+                height NUMERIC(5, 2),
+                waist NUMERIC(5, 1),
+                abdomen NUMERIC(5, 1),
+                hip NUMERIC(5, 1),
+                thigh_r NUMERIC(5, 1),
+                thigh_l NUMERIC(5, 1),
+                arm_r NUMERIC(5, 1),
+                arm_l NUMERIC(5, 1),
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        const result = await db.query('SELECT * FROM massage_packages ORDER BY status ASC, created_at DESC');
+        const mapped = result.rows.map(row => ({
+            id: row.id,
+            clientName: row.client_name,
+            clientPhone: row.client_phone || '',
+            massageType: row.massage_type,
+            sessionDuration: row.session_duration,
+            totalSessions: row.total_sessions,
+            completedSessions: row.completed_sessions,
+            price: parseFloat(row.price),
+            paymentStatus: row.payment_status,
+            status: row.status,
+            notes: row.notes || '',
+            createdAt: row.created_at
+        }));
+        res.json(mapped);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao listar pacotes de massagem.' });
+    }
+});
+
+app.post('/api/massage-packages', authenticateToken, async (req, res) => {
+    const { id, clientName, clientPhone, massageType, sessionDuration, totalSessions, completedSessions, price, paymentStatus, status, notes } = req.body;
+    if (!clientName || !massageType) {
+        return res.status(400).json({ error: 'Nome do cliente e tipo de massagem são obrigatórios.' });
+    }
+    try {
+        const pkgId = id || 'mpkg_' + Date.now() + Math.random().toString(36).substr(2, 5);
+        await db.query(
+            `INSERT INTO massage_packages (id, client_name, client_phone, massage_type, session_duration, total_sessions, completed_sessions, price, payment_status, status, notes)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+             ON CONFLICT (id) DO UPDATE
+             SET client_name = EXCLUDED.client_name,
+                 client_phone = EXCLUDED.client_phone,
+                 massage_type = EXCLUDED.massage_type,
+                 session_duration = EXCLUDED.session_duration,
+                 total_sessions = EXCLUDED.total_sessions,
+                 completed_sessions = EXCLUDED.completed_sessions,
+                 price = EXCLUDED.price,
+                 payment_status = EXCLUDED.payment_status,
+                 status = EXCLUDED.status,
+                 notes = EXCLUDED.notes`,
+            [pkgId, clientName.trim(), clientPhone || '', massageType.trim(), sessionDuration || 60, totalSessions || 1, completedSessions || 0, parseFloat(price) || 0, paymentStatus || 'pendente', status || 'ativo', notes || '']
+        );
+        res.status(201).json({ id: pkgId });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao salvar pacote: ' + err.message });
+    }
+});
+
+app.delete('/api/massage-packages/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        await db.query('DELETE FROM massage_packages WHERE id = $1', [id]);
+        res.json({ success: true, message: 'Pacote excluído com sucesso.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao excluir pacote: ' + err.message });
+    }
+});
+
+// --- SESSÕES DE MASSAGEM ---
+app.get('/api/massage-sessions/:packageId', authenticateToken, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM massage_sessions WHERE package_id = $1 ORDER BY session_date DESC, created_at DESC', [req.params.packageId]);
+        const mapped = result.rows.map(row => ({
+            id: row.id,
+            packageId: row.package_id,
+            sessionDate: row.session_date,
+            observations: row.observations || '',
+            satisfaction: row.satisfaction,
+            createdAt: row.created_at
+        }));
+        res.json(mapped);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao listar sessões.' });
+    }
+});
+
+app.post('/api/massage-sessions', authenticateToken, async (req, res) => {
+    const { id, packageId, sessionDate, observations, satisfaction } = req.body;
+    if (!packageId || !sessionDate) {
+        return res.status(400).json({ error: 'Pacote e data da sessão são obrigatórios.' });
+    }
+    try {
+        const sessId = id || 'msess_' + Date.now() + Math.random().toString(36).substr(2, 5);
+        await db.query(
+            `INSERT INTO massage_sessions (id, package_id, session_date, observations, satisfaction)
+             VALUES ($1, $2, $3, $4, $5)
+             ON CONFLICT (id) DO UPDATE
+             SET session_date = EXCLUDED.session_date,
+                 observations = EXCLUDED.observations,
+                 satisfaction = EXCLUDED.satisfaction`,
+            [sessId, packageId, sessionDate, observations || '', satisfaction || 5]
+        );
+        // Auto-update completed_sessions count on the package
+        const countResult = await db.query('SELECT COUNT(*) as cnt FROM massage_sessions WHERE package_id = $1', [packageId]);
+        const completedCount = parseInt(countResult.rows[0].cnt);
+        // Also check total to auto-set inactive
+        const pkgResult = await db.query('SELECT total_sessions FROM massage_packages WHERE id = $1', [packageId]);
+        const totalSessions = pkgResult.rows.length > 0 ? pkgResult.rows[0].total_sessions : 0;
+        const newStatus = completedCount >= totalSessions ? 'inativo' : 'ativo';
+        await db.query('UPDATE massage_packages SET completed_sessions = $1, status = $2 WHERE id = $3', [completedCount, newStatus, packageId]);
+        res.status(201).json({ id: sessId, completedSessions: completedCount, status: newStatus });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao registrar sessão: ' + err.message });
+    }
+});
+
+app.delete('/api/massage-sessions/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        // Get packageId before deleting
+        const sessResult = await db.query('SELECT package_id FROM massage_sessions WHERE id = $1', [id]);
+        const packageId = sessResult.rows.length > 0 ? sessResult.rows[0].package_id : null;
+        await db.query('DELETE FROM massage_sessions WHERE id = $1', [id]);
+        // Recount sessions
+        if (packageId) {
+            const countResult = await db.query('SELECT COUNT(*) as cnt FROM massage_sessions WHERE package_id = $1', [packageId]);
+            const completedCount = parseInt(countResult.rows[0].cnt);
+            const pkgResult = await db.query('SELECT total_sessions FROM massage_packages WHERE id = $1', [packageId]);
+            const totalSessions = pkgResult.rows.length > 0 ? pkgResult.rows[0].total_sessions : 0;
+            const newStatus = completedCount >= totalSessions ? 'inativo' : 'ativo';
+            await db.query('UPDATE massage_packages SET completed_sessions = $1, status = $2 WHERE id = $3', [completedCount, newStatus, packageId]);
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao excluir sessão: ' + err.message });
+    }
+});
+
+// --- ACOMPANHAMENTO CORPORAL ---
+app.get('/api/massage-body-tracking/:packageId', authenticateToken, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM massage_body_tracking WHERE package_id = $1 ORDER BY measure_date ASC, created_at ASC', [req.params.packageId]);
+        const mapped = result.rows.map(row => ({
+            id: row.id,
+            packageId: row.package_id,
+            measureDate: row.measure_date,
+            weight: row.weight ? parseFloat(row.weight) : null,
+            height: row.height ? parseFloat(row.height) : null,
+            waist: row.waist ? parseFloat(row.waist) : null,
+            abdomen: row.abdomen ? parseFloat(row.abdomen) : null,
+            hip: row.hip ? parseFloat(row.hip) : null,
+            thighR: row.thigh_r ? parseFloat(row.thigh_r) : null,
+            thighL: row.thigh_l ? parseFloat(row.thigh_l) : null,
+            armR: row.arm_r ? parseFloat(row.arm_r) : null,
+            armL: row.arm_l ? parseFloat(row.arm_l) : null,
+            notes: row.notes || '',
+            createdAt: row.created_at
+        }));
+        res.json(mapped);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao listar medidas corporais.' });
+    }
+});
+
+app.post('/api/massage-body-tracking', authenticateToken, async (req, res) => {
+    const { id, packageId, measureDate, weight, height, waist, abdomen, hip, thighR, thighL, armR, armL, notes } = req.body;
+    if (!packageId || !measureDate) {
+        return res.status(400).json({ error: 'Pacote e data da medição são obrigatórios.' });
+    }
+    try {
+        const trackId = id || 'mtrack_' + Date.now() + Math.random().toString(36).substr(2, 5);
+        await db.query(
+            `INSERT INTO massage_body_tracking (id, package_id, measure_date, weight, height, waist, abdomen, hip, thigh_r, thigh_l, arm_r, arm_l, notes)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+             ON CONFLICT (id) DO UPDATE
+             SET measure_date = EXCLUDED.measure_date,
+                 weight = EXCLUDED.weight,
+                 height = EXCLUDED.height,
+                 waist = EXCLUDED.waist,
+                 abdomen = EXCLUDED.abdomen,
+                 hip = EXCLUDED.hip,
+                 thigh_r = EXCLUDED.thigh_r,
+                 thigh_l = EXCLUDED.thigh_l,
+                 arm_r = EXCLUDED.arm_r,
+                 arm_l = EXCLUDED.arm_l,
+                 notes = EXCLUDED.notes`,
+            [trackId, packageId, measureDate, weight || null, height || null, waist || null, abdomen || null, hip || null, thighR || null, thighL || null, armR || null, armL || null, notes || '']
+        );
+        res.status(201).json({ id: trackId });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao salvar medidas: ' + err.message });
+    }
+});
+
+app.delete('/api/massage-body-tracking/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        await db.query('DELETE FROM massage_body_tracking WHERE id = $1', [id]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao excluir medida: ' + err.message });
+    }
+});
+
+// ==========================================
 // INICIALIZAÇÃO DO SERVIDOR
 // ==========================================
 

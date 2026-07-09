@@ -202,6 +202,18 @@
                             <span>Vales</span>
                         </a>
                     </li>
+                    <li class="sidebar-nav-item" data-page="massagem">
+                        <a href="#massagem" class="sidebar-nav-link">
+                            <svg class="sidebar-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+                                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+                                <line x1="6" y1="1" x2="6" y2="4"/>
+                                <line x1="10" y1="1" x2="10" y2="4"/>
+                                <line x1="14" y1="1" x2="14" y2="4"/>
+                            </svg>
+                            <span>Massagem</span>
+                        </a>
+                    </li>
                     <li class="sidebar-nav-item" data-page="configuracoes">
                         <a href="#configuracoes" class="sidebar-nav-link">
                             <svg class="sidebar-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1413,6 +1425,83 @@
                             </section>
                         </div>
                     </div>
+                    <!-- ============================================
+                         PAGE: PACOTES DE MASSAGEM
+                         ============================================ -->
+                    <div id="page-massagem" class="dashboard-page hidden">
+                        <div class="page-header-modern">
+                            <div class="page-header-icon" style="background: linear-gradient(135deg, #9C27B0, #E91E63);">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+                                    <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+                                    <line x1="6" y1="1" x2="6" y2="4"/>
+                                    <line x1="10" y1="1" x2="10" y2="4"/>
+                                    <line x1="14" y1="1" x2="14" y2="4"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="page-title" style="margin:0;">Pacotes de Massagem</h2>
+                                <p class="page-header-subtitle">Gerencie pacotes vendidos, sessões e acompanhamento corporal dos pacientes</p>
+                            </div>
+                        </div>
+
+                        <!-- Summary Cards -->
+                        <div class="massage-summary-row" id="massageSummaryRow">
+                            <article class="stat-card" id="massageCardAtivos">
+                                <div class="stat-card-icon" style="background: rgba(156, 39, 176, 0.1) !important; color: #9C27B0 !important;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                                </div>
+                                <div class="stat-card-content">
+                                    <span class="stat-card-label">Pacotes Ativos</span>
+                                    <span class="stat-card-value" id="massageAtivosCount">0</span>
+                                </div>
+                            </article>
+                            <article class="stat-card" id="massageCardSessoes">
+                                <div class="stat-card-icon" style="background: rgba(233, 30, 99, 0.1) !important; color: #E91E63 !important;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                </div>
+                                <div class="stat-card-content">
+                                    <span class="stat-card-label">Sessões Pendentes</span>
+                                    <span class="stat-card-value" id="massageSessoesPendentes">0</span>
+                                </div>
+                            </article>
+                            <article class="stat-card" id="massageCardFaturamento">
+                                <div class="stat-card-icon" style="background: rgba(76, 175, 80, 0.1) !important; color: #4CAF50 !important;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                </div>
+                                <div class="stat-card-content">
+                                    <span class="stat-card-label">Faturamento Acumulado</span>
+                                    <span class="stat-card-value" id="massageFaturamento">R$ 0,00</span>
+                                </div>
+                            </article>
+                            <article class="stat-card" id="massageCardMes">
+                                <div class="stat-card-icon" style="background: rgba(33, 150, 243, 0.1) !important; color: #2196F3 !important;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                </div>
+                                <div class="stat-card-content">
+                                    <span class="stat-card-label">Atendidos este Mês</span>
+                                    <span class="stat-card-value" id="massageAtendidosMes">0</span>
+                                </div>
+                            </article>
+                        </div>
+
+                        <!-- Filter Bar -->
+                        <div class="massage-filter-bar" id="massageFilterBar">
+                            <div class="massage-filter-tabs">
+                                <button class="massage-filter-tab active" data-filter="ativos">🟢 Ativos</button>
+                                <button class="massage-filter-tab" data-filter="inativos">⚫ Inativos</button>
+                                <button class="massage-filter-tab" data-filter="todos">📋 Todos</button>
+                            </div>
+                            <button class="mod-btn mod-btn--primary" id="btnNovoPacoteMassagem">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Novo Pacote
+                            </button>
+                        </div>
+
+                        <!-- Packages List (rendered dynamically by JS) -->
+                        <div class="massage-packages-list" id="massagePackagesList"></div>
+                    </div>
+
                 </main>
 
                 <!-- ============================================

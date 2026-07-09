@@ -9108,3 +9108,749 @@ body.dark-mode .specialty-chip.active .chip-check-icon {
   color: var(--gold-400);
 }
 
+
+/* ============================================================
+   ABA DE MASSAGEM — Pacotes, Sessões, Acompanhamento Corporal
+   ============================================================ */
+
+/* Summary Row */
+.massage-summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1024px) {
+  .massage-summary-row { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .massage-summary-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+}
+
+/* Filter Bar */
+.massage-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.massage-filter-tabs {
+  display: flex;
+  gap: 6px;
+  background: var(--surface-2, #f5f5f5);
+  border-radius: 12px;
+  padding: 4px;
+}
+.massage-filter-tab {
+  padding: 8px 18px;
+  border: none;
+  background: transparent;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-secondary, #666);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.massage-filter-tab.active {
+  background: #fff;
+  color: #9C27B0;
+  box-shadow: 0 2px 8px rgba(156,39,176,0.15);
+}
+.massage-filter-tab:hover:not(.active) {
+  background: rgba(156,39,176,0.07);
+  color: #9C27B0;
+}
+
+/* Packages List Grid */
+.massage-packages-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 20px;
+}
+@media (max-width: 640px) {
+  .massage-packages-list { grid-template-columns: 1fr; gap: 14px; }
+}
+
+/* Package Card */
+.massage-pkg-card {
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid rgba(156,39,176,0.1);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+.massage-pkg-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 28px rgba(156,39,176,0.18);
+}
+.massage-pkg-card-header {
+  background: linear-gradient(135deg, #9C27B0, #E91E63);
+  padding: 18px 20px 14px;
+  color: #fff;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.massage-pkg-card.inativo .massage-pkg-card-header {
+  background: linear-gradient(135deg, #78909C, #90A4AE);
+}
+.massage-pkg-client-name {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+.massage-pkg-type {
+  font-size: 12px;
+  opacity: 0.85;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.massage-pkg-status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.massage-pkg-status-badge.ativo {
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.4);
+}
+.massage-pkg-status-badge.inativo {
+  background: rgba(0,0,0,0.15);
+  color: rgba(255,255,255,0.8);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* Card Body */
+.massage-pkg-card-body {
+  padding: 16px 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Session Progress */
+.massage-progress-section {}
+.massage-progress-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.massage-progress-text {
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  font-weight: 600;
+}
+.massage-progress-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: #9C27B0;
+}
+.massage-pkg-card.inativo .massage-progress-count { color: #78909C; }
+.massage-progress-bar-bg {
+  height: 8px;
+  background: rgba(156,39,176,0.1);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.massage-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #9C27B0, #E91E63);
+  border-radius: 99px;
+  transition: width 0.8s cubic-bezier(.4,2,.6,1);
+}
+.massage-pkg-card.inativo .massage-progress-bar-fill {
+  background: linear-gradient(90deg, #78909C, #90A4AE);
+}
+
+/* Info Row */
+.massage-pkg-info-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.massage-pkg-info-item {
+  background: var(--surface-2, #f8f8f8);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.massage-pkg-info-label {
+  font-size: 10px;
+  color: var(--text-secondary, #888);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.massage-pkg-info-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary, #222);
+}
+.massage-pkg-info-value.price { color: #4CAF50; }
+.massage-pkg-info-value.payment-pago { color: #4CAF50; }
+.massage-pkg-info-value.payment-parcial { color: #FF9800; }
+.massage-pkg-info-value.payment-pendente { color: #EF5350; }
+
+/* Card Footer */
+.massage-pkg-card-footer {
+  padding: 12px 20px;
+  border-top: 1px solid rgba(156,39,176,0.08);
+  display: flex;
+  gap: 8px;
+}
+.massage-pkg-btn {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.massage-pkg-btn-details {
+  background: linear-gradient(135deg, #9C27B0, #E91E63);
+  color: #fff;
+}
+.massage-pkg-btn-details:hover { opacity: 0.88; transform: scale(0.98); }
+.massage-pkg-btn-session {
+  background: rgba(76,175,80,0.1);
+  color: #4CAF50;
+  border: 1px solid rgba(76,175,80,0.2);
+}
+.massage-pkg-btn-session:hover { background: rgba(76,175,80,0.18); }
+.massage-pkg-btn-delete {
+  background: rgba(239,83,80,0.08);
+  color: #EF5350;
+  border: 1px solid rgba(239,83,80,0.15);
+  flex: 0;
+  padding: 8px 10px;
+}
+.massage-pkg-btn-delete:hover { background: rgba(239,83,80,0.16); }
+
+/* Empty State */
+.massage-empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 24px;
+  color: var(--text-secondary, #888);
+}
+.massage-empty-state svg { opacity: 0.35; margin-bottom: 16px; }
+.massage-empty-state h3 { font-size: 18px; font-weight: 700; margin: 0 0 8px; color: var(--text-primary, #333); }
+.massage-empty-state p { font-size: 14px; margin: 0; }
+
+/* ——— DETAIL PANEL (Full Overlay) ——— */
+.massage-detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  animation: fadeIn 0.2s ease;
+}
+.massage-detail-panel {
+  width: 100%;
+  max-width: 780px;
+  height: 100dvh;
+  background: #fff;
+  overflow-y: auto;
+  box-shadow: -6px 0 40px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  animation: slideFromRight 0.3s cubic-bezier(.4,0,.2,1);
+}
+@keyframes slideFromRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.massage-detail-header {
+  background: linear-gradient(135deg, #9C27B0, #E91E63);
+  padding: 28px 28px 22px;
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  flex-shrink: 0;
+}
+.massage-detail-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.massage-detail-client {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 4px;
+}
+.massage-detail-type {
+  font-size: 13px;
+  opacity: 0.85;
+}
+.massage-detail-close {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.massage-detail-close:hover { background: rgba(255,255,255,0.35); }
+
+/* Progress in detail header */
+.massage-detail-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+.massage-detail-progress-bar-bg {
+  flex: 1;
+  height: 10px;
+  background: rgba(255,255,255,0.25);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.massage-detail-progress-bar-fill {
+  height: 100%;
+  background: rgba(255,255,255,0.85);
+  border-radius: 99px;
+  transition: width 0.8s cubic-bezier(.4,2,.6,1);
+}
+.massage-detail-progress-label {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Detail Body */
+.massage-detail-body {
+  flex: 1;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* Section */
+.massage-detail-section {}
+.massage-detail-section-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary, #1a1a1a);
+  margin: 0 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid rgba(156,39,176,0.12);
+}
+.massage-detail-section-title svg { color: #9C27B0; flex-shrink: 0; }
+
+/* Info Grid in detail */
+.massage-detail-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+@media (max-width: 600px) {
+  .massage-detail-info-grid { grid-template-columns: 1fr 1fr; }
+}
+.massage-detail-info-item {
+  background: var(--surface-2, #f8f8f8);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.massage-detail-info-item .info-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, #888);
+  margin-bottom: 4px;
+}
+.massage-detail-info-item .info-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary, #222);
+}
+
+/* Add Session / Add Measure buttons */
+.massage-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.18s;
+}
+.massage-add-btn-primary {
+  background: linear-gradient(135deg, #9C27B0, #E91E63);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(156,39,176,0.3);
+}
+.massage-add-btn-primary:hover { opacity: 0.88; }
+.massage-add-btn-success {
+  background: rgba(76,175,80,0.1);
+  color: #4CAF50;
+  border: 1px solid rgba(76,175,80,0.25);
+}
+.massage-add-btn-success:hover { background: rgba(76,175,80,0.2); }
+.massage-section-action-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -4px;
+  margin-bottom: 12px;
+}
+
+/* Session Timeline */
+.massage-session-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.massage-session-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 16px;
+  background: var(--surface-2, #f8f9fa);
+  border-radius: 12px;
+  border-left: 3px solid #9C27B0;
+  position: relative;
+}
+.massage-session-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #9C27B0, #E91E63);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.massage-session-content { flex: 1; }
+.massage-session-date {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #222);
+  margin-bottom: 3px;
+}
+.massage-session-obs {
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  line-height: 1.4;
+}
+.massage-session-stars {
+  display: flex;
+  gap: 2px;
+  margin-top: 5px;
+}
+.massage-session-star { color: #FFC107; font-size: 13px; }
+.massage-session-star.empty { color: #ddd; }
+.massage-session-delete {
+  background: none;
+  border: none;
+  color: #EF5350;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  opacity: 0.6;
+  transition: opacity 0.18s;
+  flex-shrink: 0;
+}
+.massage-session-delete:hover { opacity: 1; background: rgba(239,83,80,0.08); }
+
+/* Body Tracking */
+.massage-tracking-table-wrap {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(156,39,176,0.1);
+}
+.massage-tracking-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.massage-tracking-table th {
+  background: rgba(156,39,176,0.06);
+  color: #9C27B0;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 10px 12px;
+  text-align: center;
+  border-bottom: 1px solid rgba(156,39,176,0.1);
+  white-space: nowrap;
+}
+.massage-tracking-table td {
+  padding: 10px 12px;
+  text-align: center;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  color: var(--text-primary, #333);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.massage-tracking-table td:first-child {
+  text-align: left;
+  font-weight: 700;
+  color: #9C27B0;
+}
+.massage-tracking-table tbody tr:last-child td { border-bottom: none; }
+.massage-tracking-table tbody tr:hover td { background: rgba(156,39,176,0.03); }
+.massage-track-delete {
+  background: none;
+  border: none;
+  color: #EF5350;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  opacity: 0.6;
+  transition: opacity 0.18s;
+}
+.massage-track-delete:hover { opacity: 1; background: rgba(239,83,80,0.08); }
+
+/* Delta indicators */
+.massage-delta-pos { color: #4CAF50; font-size: 11px; font-weight: 700; }
+.massage-delta-neg { color: #EF5350; font-size: 11px; font-weight: 700; }
+.massage-delta-same { color: #9E9E9E; font-size: 11px; }
+
+/* Mini evolution chart */
+.massage-chart-container {
+  background: var(--surface-2, #f8f9fa);
+  border-radius: 14px;
+  padding: 16px;
+}
+.massage-chart-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+.massage-sparkline {
+  width: 100%;
+  height: 80px;
+  display: block;
+}
+.massage-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+@media (max-width: 600px) {
+  .massage-charts-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ——— MODALS ——— */
+.massage-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+.massage-modal {
+  background: #fff;
+  border-radius: 20px;
+  padding: 32px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 90dvh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  animation: scaleIn 0.25s cubic-bezier(.4,0,.2,1);
+}
+@keyframes scaleIn {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.massage-modal-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0 0 24px;
+  background: linear-gradient(135deg, #9C27B0, #E91E63);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.massage-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 480px) {
+  .massage-modal-grid { grid-template-columns: 1fr; }
+  .massage-modal { padding: 24px 18px; }
+}
+.massage-modal-grid .full-col { grid-column: 1 / -1; }
+.massage-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.massage-form-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, #666);
+}
+.massage-form-input,
+.massage-form-select,
+.massage-form-textarea {
+  border: 1.5px solid rgba(156,39,176,0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-primary, #222);
+  background: var(--surface-1, #fff);
+  transition: border-color 0.2s;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.massage-form-input:focus,
+.massage-form-select:focus,
+.massage-form-textarea:focus {
+  border-color: #9C27B0;
+  box-shadow: 0 0 0 3px rgba(156,39,176,0.1);
+}
+.massage-form-textarea { resize: vertical; min-height: 80px; }
+.massage-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+  justify-content: flex-end;
+}
+.massage-modal-btn-cancel {
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--surface-2, #f0f0f0);
+  color: var(--text-secondary, #666);
+  border: none;
+  transition: background 0.18s;
+}
+.massage-modal-btn-cancel:hover { background: #e0e0e0; }
+.massage-modal-btn-save {
+  padding: 10px 28px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #9C27B0, #E91E63);
+  color: #fff;
+  border: none;
+  transition: opacity 0.18s;
+  box-shadow: 0 4px 14px rgba(156,39,176,0.35);
+}
+.massage-modal-btn-save:hover { opacity: 0.88; }
+.massage-modal-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Star rating input */
+.massage-star-rating { display: flex; gap: 6px; margin-top: 4px; }
+.massage-star-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  transition: transform 0.15s;
+  color: #ddd;
+  padding: 0;
+  line-height: 1;
+}
+.massage-star-btn.active { color: #FFC107; }
+.massage-star-btn:hover { transform: scale(1.2); }
+
+/* DARK MODE overrides */
+body.dark-mode .massage-filter-tabs { background: rgba(255,255,255,0.06); }
+body.dark-mode .massage-filter-tab.active { background: rgba(255,255,255,0.12); }
+body.dark-mode .massage-pkg-card { background: #1E1B18; border-color: rgba(156,39,176,0.2); }
+body.dark-mode .massage-pkg-info-item { background: rgba(255,255,255,0.06); }
+body.dark-mode .massage-pkg-info-value { color: #f0f0f0; }
+body.dark-mode .massage-pkg-info-label { color: rgba(255,255,255,0.45); }
+body.dark-mode .massage-pkg-card-footer { border-color: rgba(255,255,255,0.07); }
+body.dark-mode .massage-pkg-btn-session { background: rgba(76,175,80,0.15); border-color: rgba(76,175,80,0.3); }
+body.dark-mode .massage-pkg-btn-delete { background: rgba(239,83,80,0.12); border-color: rgba(239,83,80,0.2); }
+body.dark-mode .massage-detail-panel { background: #1A1714; }
+body.dark-mode .massage-detail-info-item { background: rgba(255,255,255,0.06); }
+body.dark-mode .massage-detail-info-item .info-value { color: #f0f0f0; }
+body.dark-mode .massage-detail-info-item .info-label { color: rgba(255,255,255,0.4); }
+body.dark-mode .massage-detail-section-title { color: #f0f0f0; border-color: rgba(156,39,176,0.2); }
+body.dark-mode .massage-session-item { background: rgba(255,255,255,0.05); }
+body.dark-mode .massage-session-date { color: #e0e0e0; }
+body.dark-mode .massage-session-obs { color: rgba(255,255,255,0.5); }
+body.dark-mode .massage-tracking-table th { background: rgba(156,39,176,0.1); }
+body.dark-mode .massage-tracking-table td { color: #e0e0e0; border-color: rgba(255,255,255,0.06); }
+body.dark-mode .massage-tracking-table tbody tr:hover td { background: rgba(156,39,176,0.05); }
+body.dark-mode .massage-chart-container { background: rgba(255,255,255,0.05); }
+body.dark-mode .massage-chart-title { color: rgba(255,255,255,0.5); }
+body.dark-mode .massage-modal { background: #1E1B18; }
+body.dark-mode .massage-form-input,
+body.dark-mode .massage-form-select,
+body.dark-mode .massage-form-textarea {
+  background: #2A2520;
+  border-color: rgba(156,39,176,0.25);
+  color: #e8e8e8;
+}
+body.dark-mode .massage-form-input:focus,
+body.dark-mode .massage-form-select:focus,
+body.dark-mode .massage-form-textarea:focus { border-color: #AB47BC; }
+body.dark-mode .massage-form-select option { background: #2A2520; }
+body.dark-mode .massage-modal-btn-cancel { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); }
+body.dark-mode .massage-modal-btn-cancel:hover { background: rgba(255,255,255,0.14); }
+body.dark-mode .massage-progress-bar-bg { background: rgba(156,39,176,0.15); }
+body.dark-mode .massage-empty-state h3 { color: rgba(255,255,255,0.7); }
+body.dark-mode .massage-empty-state p { color: rgba(255,255,255,0.4); }

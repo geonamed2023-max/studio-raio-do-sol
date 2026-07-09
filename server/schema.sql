@@ -88,3 +88,47 @@ CREATE TABLE IF NOT EXISTS payouts (
     services JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 7. Tabela de Pacotes de Massagem
+CREATE TABLE IF NOT EXISTS massage_packages (
+    id VARCHAR(50) PRIMARY KEY,
+    client_name VARCHAR(100) NOT NULL,
+    client_phone VARCHAR(20),
+    massage_type VARCHAR(100) NOT NULL,
+    session_duration INTEGER NOT NULL DEFAULT 60,
+    total_sessions INTEGER NOT NULL DEFAULT 1,
+    completed_sessions INTEGER NOT NULL DEFAULT 0,
+    price NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    payment_status VARCHAR(20) NOT NULL DEFAULT 'pendente',
+    status VARCHAR(20) NOT NULL DEFAULT 'ativo',
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 8. Tabela de Sessões de Massagem Realizadas
+CREATE TABLE IF NOT EXISTS massage_sessions (
+    id VARCHAR(50) PRIMARY KEY,
+    package_id VARCHAR(50) NOT NULL REFERENCES massage_packages(id) ON DELETE CASCADE,
+    session_date VARCHAR(10) NOT NULL,
+    observations TEXT,
+    satisfaction INTEGER DEFAULT 5,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 9. Tabela de Acompanhamento Corporal
+CREATE TABLE IF NOT EXISTS massage_body_tracking (
+    id VARCHAR(50) PRIMARY KEY,
+    package_id VARCHAR(50) NOT NULL REFERENCES massage_packages(id) ON DELETE CASCADE,
+    measure_date VARCHAR(10) NOT NULL,
+    weight NUMERIC(5, 2),
+    height NUMERIC(5, 2),
+    waist NUMERIC(5, 1),
+    abdomen NUMERIC(5, 1),
+    hip NUMERIC(5, 1),
+    thigh_r NUMERIC(5, 1),
+    thigh_l NUMERIC(5, 1),
+    arm_r NUMERIC(5, 1),
+    arm_l NUMERIC(5, 1),
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

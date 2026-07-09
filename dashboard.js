@@ -894,6 +894,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderConfiguracoesPage();
             } else if (pageId === 'pagamentos') {
                 renderPaymentsPage();
+            } else if (pageId === 'massagem') {
+                renderMassagemPage();
             }
 
             // On mobile, close sidebar after selection
@@ -4621,10 +4623,17 @@ function closeAppointmentModal() {
 
             // Hide other tabs for employee that they shouldn't access
             const navItems = document.querySelectorAll('.sidebar-nav-item');
+            const isGeorgiana = session.name && (
+                session.name.toLowerCase().includes('georgiana') ||
+                session.name.toLowerCase().includes('francine')
+            );
             navItems.forEach(item => {
                 const page = item.dataset.page;
                 if (page === 'profissionais' || page === 'gastos' || page === 'vales') {
                     item.style.display = 'none'; // Employees don't manage team, expenses or advances
+                }
+                if (page === 'massagem' && !isGeorgiana) {
+                    item.style.display = 'none'; // Only Georgiana Francine sees massage tab
                 }
             });
         } else {
@@ -9524,6 +9533,832 @@ function closeAppointmentModal() {
         eventSource.onerror = (error) => {
             console.warn('[SSE] Erro ou desconexão no canal de tempo real. Reconectando automaticamente...', error);
         };
+    }
+
+    // ============================================================
+    // ABA DE MASSAGEM — Pacotes, Sessões, Acompanhamento Corporal
+    // Visível apenas para Admin e Georgiana Francine
+    // ============================================================
+
+    let massagePackages = [];
+    let massageCurrentFilter = 'ativos';
+
+    async function renderMassagemPage() {
+        const listEl = document.getElementById('massagePackagesList');
+        if (!listEl) return;
+
+        listEl.innerHTML = `<div style="text-align:center;padding:40px;color:#9C27B0;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            <p style="margin-top:12px;font-size:14px;font-weight:600;">Carregando pacotes...</p>
+        </div>`;
+
+        try {
+            massagePackages = await apiRequest('/massage-packages');
+        } catch (e) {
+            massagePackages = [];
+        }
+
+        // Update summary stats
+        updateMassageSummary();
+
+        // Setup filter tabs
+        const filterBar = document.getElementById('massageFilterBar');
+        if (filterBar) {
+            filterBar.querySelectorAll('.massage-filter-tab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    filterBar.querySelectorAll('.massage-filter-tab').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    massageCurrentFilter = btn.dataset.filter;
+                    renderMassagePackagesList();
+                });
+            });
+            // Set correct active tab
+            filterBar.querySelectorAll('.massage-filter-tab').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === massageCurrentFilter);
+            });
+        }
+
+        // New package button
+        const btnNew = document.getElementById('btnNovoPacoteMassagem');
+        if (btnNew) {
+            const newBtn = btnNew.cloneNode(true);
+            btnNew.parentNode.replaceChild(newBtn, btnNew);
+            newBtn.addEventListener('click', () => openMassagePackageModal());
+        }
+
+        renderMassagePackagesList();
+    }
+
+    function updateMassageSummary() {
+        const ativos = massagePackages.filter(p => p.status === 'ativo');
+        const totalPendingSessions = ativos.reduce((sum, p) => sum + Math.max(0, p.totalSessions - p.completedSessions), 0);
+        const totalRevenue = massagePackages.reduce((sum, p) => sum + (p.price || 0), 0);
+        const thisMonth = new Date().toISOString().slice(0, 7);
+        const atendidosMes = massagePackages.filter(p => {
+            if (!p.createdAt) return false;
+            return String(p.createdAt).slice(0, 7) === thisMonth;
+        }).length;
+
+        const el = id => document.getElementById(id);
+        if (el('massageAtivosCount')) el('massageAtivosCount').textContent = ativos.length;
+        if (el('massageSessoesPendentes')) el('massageSessoesPendentes').textContent = totalPendingSessions;
+        if (el('massageFaturamento')) el('massageFaturamento').textContent = `R$ ${totalRevenue.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+        if (el('massageAtendidosMes')) el('massageAtendidosMes').textContent = atendidosMes;
+    }
+
+    function renderMassagePackagesList() {
+        const listEl = document.getElementById('massagePackagesList');
+        if (!listEl) return;
+
+        let filtered = massagePackages;
+        if (massageCurrentFilter === 'ativos') filtered = massagePackages.filter(p => p.status === 'ativo');
+        else if (massageCurrentFilter === 'inativos') filtered = massagePackages.filter(p => p.status === 'inativo');
+
+        if (filtered.length === 0) {
+            const label = massageCurrentFilter === 'ativos' ? 'ativos' : massageCurrentFilter === 'inativos' ? 'inativos' : '';
+            listEl.innerHTML = `<div class="massage-empty-state">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#9C27B0" stroke-width="1.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+                <h3>Nenhum pacote ${label} encontrado</h3>
+                <p>Clique em "Novo Pacote" para registrar o primeiro pacote de massagem.</p>
+            </div>`;
+            return;
+        }
+
+        listEl.innerHTML = filtered.map(pkg => {
+            const pct = pkg.totalSessions > 0 ? Math.min(100, Math.round((pkg.completedSessions / pkg.totalSessions) * 100)) : 0;
+            const remaining = Math.max(0, pkg.totalSessions - pkg.completedSessions);
+            const paymentClass = `payment-${pkg.paymentStatus}`;
+            const paymentLabel = {pago: '✅ Pago Total', parcial: '⚠️ Parcial', pendente: '❌ Pendente'}[pkg.paymentStatus] || pkg.paymentStatus;
+
+            return `
+            <div class="massage-pkg-card ${pkg.status}" data-pkg-id="${pkg.id}">
+                <div class="massage-pkg-card-header">
+                    <div>
+                        <p class="massage-pkg-client-name">${pkg.clientName}</p>
+                        <p class="massage-pkg-type">💆 ${pkg.massageType} · ${pkg.sessionDuration} min</p>
+                    </div>
+                    <span class="massage-pkg-status-badge ${pkg.status}">${pkg.status === 'ativo' ? '🟢 ATIVO' : '⚫ INATIVO'}</span>
+                </div>
+                <div class="massage-pkg-card-body">
+                    <div class="massage-progress-section">
+                        <div class="massage-progress-label">
+                            <span class="massage-progress-text">Progresso das Sessões</span>
+                            <span class="massage-progress-count">${pkg.completedSessions}/${pkg.totalSessions} — ${remaining} restante${remaining !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div class="massage-progress-bar-bg">
+                            <div class="massage-progress-bar-fill" style="width:${pct}%"></div>
+                        </div>
+                    </div>
+                    <div class="massage-pkg-info-row">
+                        <div class="massage-pkg-info-item">
+                            <span class="massage-pkg-info-label">Valor do Pacote</span>
+                            <span class="massage-pkg-info-value price">R$ ${(pkg.price||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+                        </div>
+                        <div class="massage-pkg-info-item">
+                            <span class="massage-pkg-info-label">Pagamento</span>
+                            <span class="massage-pkg-info-value ${paymentClass}">${paymentLabel}</span>
+                        </div>
+                        ${pkg.clientPhone ? `<div class="massage-pkg-info-item"><span class="massage-pkg-info-label">Telefone</span><span class="massage-pkg-info-value">${pkg.clientPhone}</span></div>` : ''}
+                        ${pkg.notes ? `<div class="massage-pkg-info-item"><span class="massage-pkg-info-label">Obs.</span><span class="massage-pkg-info-value" style="font-size:12px;font-weight:500;">${pkg.notes}</span></div>` : ''}
+                    </div>
+                </div>
+                <div class="massage-pkg-card-footer">
+                    <button class="massage-pkg-btn massage-pkg-btn-details" data-action="details" data-pkg-id="${pkg.id}">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        Ver Detalhes
+                    </button>
+                    ${pkg.status === 'ativo' ? `<button class="massage-pkg-btn massage-pkg-btn-session" data-action="quick-session" data-pkg-id="${pkg.id}">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Sessão
+                    </button>` : ''}
+                    <button class="massage-pkg-btn massage-pkg-btn-delete" data-action="delete" data-pkg-id="${pkg.id}" title="Excluir">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                </div>
+            </div>`;
+        }).join('');
+
+        // Attach events
+        listEl.querySelectorAll('[data-action="details"]').forEach(btn => {
+            btn.addEventListener('click', () => openMassageDetailPanel(btn.dataset.pkgId));
+        });
+        listEl.querySelectorAll('[data-action="quick-session"]').forEach(btn => {
+            btn.addEventListener('click', () => openMassageSessionModal(btn.dataset.pkgId));
+        });
+        listEl.querySelectorAll('[data-action="delete"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const pkg = massagePackages.find(p => p.id === btn.dataset.pkgId);
+                if (!pkg) return;
+                showConfirmDialog({
+                    title: 'Excluir Pacote',
+                    message: `Tem certeza que deseja excluir o pacote de <strong>${pkg.clientName}</strong>? Todas as sessões e medidas serão perdidas.`,
+                    confirmText: 'Excluir',
+                    onConfirm: async () => {
+                        try {
+                            await apiRequest(`/massage-packages/${pkg.id}`, { method: 'DELETE' });
+                            massagePackages = massagePackages.filter(p => p.id !== pkg.id);
+                            updateMassageSummary();
+                            renderMassagePackagesList();
+                            showToast('Pacote excluído.', 'warning');
+                        } catch (e) {
+                            showToast('Erro ao excluir pacote.', 'error');
+                        }
+                    }
+                });
+            });
+        });
+    }
+
+    // ——— Modal: Novo / Editar Pacote ———
+    function openMassagePackageModal(pkgId = null) {
+        const pkg = pkgId ? massagePackages.find(p => p.id === pkgId) : null;
+        const isEdit = !!pkg;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'massage-modal-overlay';
+        overlay.innerHTML = `
+        <div class="massage-modal">
+            <h3 class="massage-modal-title">${isEdit ? '✏️ Editar Pacote' : '💆 Novo Pacote de Massagem'}</h3>
+            <div class="massage-modal-grid">
+                <div class="massage-form-group full-col">
+                    <label class="massage-form-label">Nome do Cliente *</label>
+                    <input class="massage-form-input" id="mpkgClientName" type="text" placeholder="Nome completo do paciente" value="${pkg ? pkg.clientName : ''}">
+                </div>
+                <div class="massage-form-group">
+                    <label class="massage-form-label">Telefone / WhatsApp</label>
+                    <input class="massage-form-input" id="mpkgClientPhone" type="text" placeholder="(00) 00000-0000" value="${pkg ? pkg.clientPhone : ''}">
+                </div>
+                <div class="massage-form-group">
+                    <label class="massage-form-label">Tipo de Massagem *</label>
+                    <select class="massage-form-select" id="mpkgMassageType">
+                        ${['Modeladora', 'Relaxante', 'Drenagem Linfática', 'Redutora', 'Esportiva', 'Pedras Quentes', 'Bambuterapia', 'Cromoterapia', 'Reflexologia', 'Shiatsu', 'Outro'].map(t =>
+                            `<option value="${t}" ${pkg && pkg.massageType === t ? 'selected' : ''}>${t}</option>`
+                        ).join('')}
+                    </select>
+                </div>
+                <div class="massage-form-group">
+                    <label class="massage-form-label">Duração da Sessão (min)</label>
+                    <input class="massage-form-input" id="mpkgDuration" type="number" min="15" step="15" value="${pkg ? pkg.sessionDuration : 60}">
+                </div>
+                <div class="massage-form-group">
+                    <label class="massage-form-label">Nº de Sessões no Pacote *</label>
+                    <input class="massage-form-input" id="mpkgTotalSessions" type="number" min="1" value="${pkg ? pkg.totalSessions : 10}">
+                </div>
+                <div class="massage-form-group">
+                    <label class="massage-form-label">Valor Total (R$) *</label>
+                    <input class="massage-form-input" id="mpkgPrice" type="number" min="0" step="0.01" placeholder="0,00" value="${pkg ? pkg.price : ''}">
+                </div>
+                <div class="massage-form-group full-col">
+                    <label class="massage-form-label">Status do Pagamento</label>
+                    <select class="massage-form-select" id="mpkgPaymentStatus">
+                        <option value="pago" ${pkg && pkg.paymentStatus === 'pago' ? 'selected' : ''}>✅ Pago Total</option>
+                        <option value="parcial" ${pkg && pkg.paymentStatus === 'parcial' ? 'selected' : ''}>⚠️ Pago Parcialmente</option>
+                        <option value="pendente" ${(!pkg || pkg.paymentStatus === 'pendente') ? 'selected' : ''}>❌ Pagamento Pendente</option>
+                    </select>
+                </div>
+                <div class="massage-form-group full-col">
+                    <label class="massage-form-label">Observações Gerais</label>
+                    <textarea class="massage-form-textarea" id="mpkgNotes" placeholder="Anotações sobre o paciente, contraindicações, preferências...">${pkg ? pkg.notes : ''}</textarea>
+                </div>
+            </div>
+            <div class="massage-modal-actions">
+                <button class="massage-modal-btn-cancel" id="mpkgBtnCancel">Cancelar</button>
+                <button class="massage-modal-btn-save" id="mpkgBtnSave">${isEdit ? 'Salvar Alterações' : 'Criar Pacote'}</button>
+            </div>
+        </div>`;
+
+        document.body.appendChild(overlay);
+
+        overlay.querySelector('#mpkgBtnCancel').addEventListener('click', () => overlay.remove());
+        overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+        overlay.querySelector('#mpkgBtnSave').addEventListener('click', async () => {
+            const clientName = overlay.querySelector('#mpkgClientName').value.trim();
+            const massageType = overlay.querySelector('#mpkgMassageType').value;
+            const price = parseFloat(overlay.querySelector('#mpkgPrice').value) || 0;
+            const totalSessions = parseInt(overlay.querySelector('#mpkgTotalSessions').value) || 1;
+            if (!clientName) { showToast('Informe o nome do cliente.', 'error'); return; }
+
+            const saveBtn = overlay.querySelector('#mpkgBtnSave');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Salvando...';
+
+            const payload = {
+                id: pkg ? pkg.id : null,
+                clientName,
+                clientPhone: overlay.querySelector('#mpkgClientPhone').value.trim(),
+                massageType,
+                sessionDuration: parseInt(overlay.querySelector('#mpkgDuration').value) || 60,
+                totalSessions,
+                completedSessions: pkg ? pkg.completedSessions : 0,
+                price,
+                paymentStatus: overlay.querySelector('#mpkgPaymentStatus').value,
+                status: pkg ? pkg.status : 'ativo',
+                notes: overlay.querySelector('#mpkgNotes').value.trim()
+            };
+
+            try {
+                const result = await apiRequest('/massage-packages', { method: 'POST', body: payload });
+                overlay.remove();
+                massagePackages = await apiRequest('/massage-packages');
+                updateMassageSummary();
+                renderMassagePackagesList();
+                showToast(isEdit ? 'Pacote atualizado!' : 'Pacote criado com sucesso!', 'success');
+            } catch (e) {
+                showToast('Erro ao salvar pacote: ' + (e.message || ''), 'error');
+                saveBtn.disabled = false;
+                saveBtn.textContent = isEdit ? 'Salvar Alterações' : 'Criar Pacote';
+            }
+        });
+    }
+
+    // ——— Modal: Registrar Sessão ———
+    function openMassageSessionModal(pkgId, onSaved) {
+        const pkg = massagePackages.find(p => p.id === pkgId);
+        if (!pkg) return;
+
+        const today = new Date().toISOString().slice(0, 10);
+        let selectedStars = 5;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'massage-modal-overlay';
+        overlay.innerHTML = `
+        <div class="massage-modal" style="max-width:440px;">
+            <h3 class="massage-modal-title">📋 Registrar Sessão</h3>
+            <p style="margin:-14px 0 18px;font-size:13px;color:#9C27B0;font-weight:600;">Paciente: ${pkg.clientName}</p>
+            <div class="massage-modal-grid" style="grid-template-columns:1fr;">
+                <div class="massage-form-group">
+                    <label class="massage-form-label">Data da Sessão *</label>
+                    <input class="massage-form-input" id="msessDate" type="date" value="${today}">
+                </div>
+                <div class="massage-form-group">
+                    <label class="massage-form-label">Observações da Sessão</label>
+                    <textarea class="massage-form-textarea" id="msessObs" placeholder="Áreas trabalhadas, reações do paciente, resultados observados..."></textarea>
+                </div>
+                <div class="massage-form-group">
+                    <label class="massage-form-label">Satisfação do Paciente</label>
+                    <div class="massage-star-rating" id="msessStars">
+                        ${[1,2,3,4,5].map(i => `<button class="massage-star-btn ${i <= 5 ? 'active' : ''}" data-star="${i}">★</button>`).join('')}
+                    </div>
+                </div>
+            </div>
+            <div class="massage-modal-actions">
+                <button class="massage-modal-btn-cancel" id="msessBtnCancel">Cancelar</button>
+                <button class="massage-modal-btn-save" id="msessBtnSave">Registrar Sessão</button>
+            </div>
+        </div>`;
+
+        document.body.appendChild(overlay);
+
+        // Star rating
+        overlay.querySelectorAll('.massage-star-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                selectedStars = parseInt(btn.dataset.star);
+                overlay.querySelectorAll('.massage-star-btn').forEach(b => {
+                    b.classList.toggle('active', parseInt(b.dataset.star) <= selectedStars);
+                });
+            });
+        });
+
+        overlay.querySelector('#msessBtnCancel').addEventListener('click', () => overlay.remove());
+        overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+        overlay.querySelector('#msessBtnSave').addEventListener('click', async () => {
+            const sessionDate = overlay.querySelector('#msessDate').value;
+            if (!sessionDate) { showToast('Informe a data da sessão.', 'error'); return; }
+
+            const saveBtn = overlay.querySelector('#msessBtnSave');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Salvando...';
+
+            try {
+                const result = await apiRequest('/massage-sessions', {
+                    method: 'POST',
+                    body: {
+                        packageId: pkgId,
+                        sessionDate,
+                        observations: overlay.querySelector('#msessObs').value.trim(),
+                        satisfaction: selectedStars
+                    }
+                });
+
+                // Update local state
+                const pkgLocal = massagePackages.find(p => p.id === pkgId);
+                if (pkgLocal) {
+                    pkgLocal.completedSessions = result.completedSessions;
+                    pkgLocal.status = result.status;
+                }
+
+                overlay.remove();
+                updateMassageSummary();
+                renderMassagePackagesList();
+                showToast('Sessão registrada com sucesso!', 'success');
+                if (onSaved) onSaved();
+            } catch (e) {
+                showToast('Erro ao registrar sessão.', 'error');
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Registrar Sessão';
+            }
+        });
+    }
+
+    // ——— Modal: Registrar Medidas Corporais ———
+    function openMassageBodyTrackingModal(pkgId, onSaved) {
+        const pkg = massagePackages.find(p => p.id === pkgId);
+        if (!pkg) return;
+        const today = new Date().toISOString().slice(0, 10);
+
+        const overlay = document.createElement('div');
+        overlay.className = 'massage-modal-overlay';
+        overlay.innerHTML = `
+        <div class="massage-modal" style="max-width:560px;">
+            <h3 class="massage-modal-title">📏 Registrar Medidas Corporais</h3>
+            <p style="margin:-14px 0 18px;font-size:13px;color:#9C27B0;font-weight:600;">Paciente: ${pkg.clientName}</p>
+            <div class="massage-modal-grid">
+                <div class="massage-form-group full-col">
+                    <label class="massage-form-label">Data da Avaliação *</label>
+                    <input class="massage-form-input" id="mtrackDate" type="date" value="${today}">
+                </div>
+                <div class="massage-form-group">
+                    <label class="massage-form-label">Peso (kg)</label>
+                    <input class="massage-form-input" id="mtrackWeight" type="number" min="0" step="0.1" placeholder="Ex: 68.5">
+                </div>
+                <div class="massage-form-group">
+                    <label class="massage-form-label">Altura (cm)</label>
+                    <input class="massage-form-input" id="mtrackHeight" type="number" min="0" step="0.5" placeholder="Ex: 165">
+                </div>
+                <div class="massage-form-group">
+                    <label class="massage-form-label">Cintura (cm)</label>
+                    <input class="massage-form-input" id="mtrackWaist" type="number" min="0" step="0.5" placeholder="Ex: 72.0">
+                </div>
+                <div class="massage-form-group">
+                    <label class="massage-form-label">Abdômen (cm)</label>
+                    <input class="massage-form-input" id="mtrackAbdomen" type="number" min="0" step="0.5" placeholder="Ex: 85.0">
+                </div>
+                <div class="massage-form-group">
+                    <label class="massage-form-label">Quadril (cm)</label>
+                    <input class="massage-form-input" id="mtrackHip" type="number" min="0" step="0.5" placeholder="Ex: 98.0">
+                </div>
+                <div class="massage-form-group">
+                    <label class="massage-form-label">Coxa Direita (cm)</label>
+                    <input class="massage-form-input" id="mtrackThighR" type="number" min="0" step="0.5" placeholder="Ex: 55.0">
+                </div>
+                <div class="massage-form-group">
+                    <label class="massage-form-label">Coxa Esquerda (cm)</label>
+                    <input class="massage-form-input" id="mtrackThighL" type="number" min="0" step="0.5" placeholder="Ex: 55.0">
+                </div>
+                <div class="massage-form-group">
+                    <label class="massage-form-label">Braço Direito (cm)</label>
+                    <input class="massage-form-input" id="mtrackArmR" type="number" min="0" step="0.5" placeholder="Ex: 28.0">
+                </div>
+                <div class="massage-form-group">
+                    <label class="massage-form-label">Braço Esquerdo (cm)</label>
+                    <input class="massage-form-input" id="mtrackArmL" type="number" min="0" step="0.5" placeholder="Ex: 28.0">
+                </div>
+                <div class="massage-form-group full-col">
+                    <label class="massage-form-label">Observações (Estado da Pele, Retenção Hídrica, etc.)</label>
+                    <textarea class="massage-form-textarea" id="mtrackNotes" placeholder="Ex: Celulite grau 2 na região glútea, retenção hídrica moderada nas pernas..."></textarea>
+                </div>
+            </div>
+            <div class="massage-modal-actions">
+                <button class="massage-modal-btn-cancel" id="mtrackBtnCancel">Cancelar</button>
+                <button class="massage-modal-btn-save" id="mtrackBtnSave">Salvar Medidas</button>
+            </div>
+        </div>`;
+
+        document.body.appendChild(overlay);
+        overlay.querySelector('#mtrackBtnCancel').addEventListener('click', () => overlay.remove());
+        overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+        overlay.querySelector('#mtrackBtnSave').addEventListener('click', async () => {
+            const measureDate = overlay.querySelector('#mtrackDate').value;
+            if (!measureDate) { showToast('Informe a data da avaliação.', 'error'); return; }
+
+            const parseVal = id => {
+                const v = parseFloat(overlay.querySelector(id).value);
+                return isNaN(v) ? null : v;
+            };
+
+            const saveBtn = overlay.querySelector('#mtrackBtnSave');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Salvando...';
+
+            try {
+                await apiRequest('/massage-body-tracking', {
+                    method: 'POST',
+                    body: {
+                        packageId: pkgId,
+                        measureDate,
+                        weight: parseVal('#mtrackWeight'),
+                        height: parseVal('#mtrackHeight'),
+                        waist: parseVal('#mtrackWaist'),
+                        abdomen: parseVal('#mtrackAbdomen'),
+                        hip: parseVal('#mtrackHip'),
+                        thighR: parseVal('#mtrackThighR'),
+                        thighL: parseVal('#mtrackThighL'),
+                        armR: parseVal('#mtrackArmR'),
+                        armL: parseVal('#mtrackArmL'),
+                        notes: overlay.querySelector('#mtrackNotes').value.trim()
+                    }
+                });
+                overlay.remove();
+                showToast('Medidas registradas com sucesso!', 'success');
+                if (onSaved) onSaved();
+            } catch (e) {
+                showToast('Erro ao salvar medidas.', 'error');
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Salvar Medidas';
+            }
+        });
+    }
+
+    // ——— Detail Panel ———
+    async function openMassageDetailPanel(pkgId) {
+        const pkg = massagePackages.find(p => p.id === pkgId);
+        if (!pkg) return;
+
+        // Remove any existing detail panel
+        document.querySelectorAll('.massage-detail-overlay').forEach(el => el.remove());
+
+        const pct = pkg.totalSessions > 0 ? Math.min(100, Math.round((pkg.completedSessions / pkg.totalSessions) * 100)) : 0;
+        const remaining = Math.max(0, pkg.totalSessions - pkg.completedSessions);
+        const paymentLabel = {pago: '✅ Pago Total', parcial: '⚠️ Pago Parcialmente', pendente: '❌ Pagamento Pendente'}[pkg.paymentStatus] || pkg.paymentStatus;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'massage-detail-overlay';
+        overlay.innerHTML = `
+        <div class="massage-detail-panel">
+            <div class="massage-detail-header">
+                <div class="massage-detail-header-top">
+                    <div>
+                        <p class="massage-detail-client">${pkg.clientName}</p>
+                        <p class="massage-detail-type">💆 ${pkg.massageType} · ${pkg.sessionDuration} min por sessão</p>
+                    </div>
+                    <button class="massage-detail-close" id="massageDetailClose">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                <div class="massage-detail-progress-row">
+                    <div class="massage-detail-progress-bar-bg">
+                        <div class="massage-detail-progress-bar-fill" style="width:${pct}%"></div>
+                    </div>
+                    <span class="massage-detail-progress-label">${pkg.completedSessions}/${pkg.totalSessions} sessões</span>
+                </div>
+            </div>
+            <div class="massage-detail-body">
+                <!-- Info Grid -->
+                <div class="massage-detail-section">
+                    <h4 class="massage-detail-section-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        Informações do Pacote
+                    </h4>
+                    <div class="massage-detail-info-grid">
+                        <div class="massage-detail-info-item"><div class="info-label">Sessões Restantes</div><div class="info-value" style="color:#9C27B0;">${remaining}</div></div>
+                        <div class="massage-detail-info-item"><div class="info-label">Valor do Pacote</div><div class="info-value" style="color:#4CAF50;">R$ ${(pkg.price||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
+                        <div class="massage-detail-info-item"><div class="info-label">Pagamento</div><div class="info-value" style="font-size:12px;">${paymentLabel}</div></div>
+                        ${pkg.clientPhone ? `<div class="massage-detail-info-item"><div class="info-label">Telefone</div><div class="info-value">${pkg.clientPhone}</div></div>` : ''}
+                        <div class="massage-detail-info-item"><div class="info-label">Status</div><div class="info-value">${pkg.status === 'ativo' ? '🟢 Ativo' : '⚫ Inativo'}</div></div>
+                        <div class="massage-detail-info-item">
+                            <div class="info-label">Ações</div>
+                            <button class="massage-add-btn massage-add-btn-primary" id="detailBtnEdit" style="font-size:11px;padding:6px 12px;margin-top:2px;">✏️ Editar Pacote</button>
+                        </div>
+                    </div>
+                    ${pkg.notes ? `<div style="margin-top:10px;padding:10px 14px;background:rgba(156,39,176,0.06);border-radius:10px;font-size:13px;color:var(--text-secondary,#666);">📝 ${pkg.notes}</div>` : ''}
+                </div>
+
+                <!-- Sessions Section -->
+                <div class="massage-detail-section" id="detailSessionsSection">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid rgba(156,39,176,0.12);">
+                        <h4 class="massage-detail-section-title" style="margin:0;border:none;padding:0;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            Sessões Realizadas
+                        </h4>
+                        ${pkg.status === 'ativo' ? `<button class="massage-add-btn massage-add-btn-primary" id="detailBtnAddSession">+ Registrar Sessão</button>` : ''}
+                    </div>
+                    <div class="massage-session-timeline" id="detailSessionsList">
+                        <div style="text-align:center;padding:20px;color:#9C27B0;font-size:13px;">Carregando sessões...</div>
+                    </div>
+                </div>
+
+                <!-- Body Tracking Section -->
+                <div class="massage-detail-section" id="detailBodySection">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid rgba(156,39,176,0.12);">
+                        <h4 class="massage-detail-section-title" style="margin:0;border:none;padding:0;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                            Acompanhamento Corporal
+                        </h4>
+                        <button class="massage-add-btn massage-add-btn-success" id="detailBtnAddMeasure">+ Registrar Medidas</button>
+                    </div>
+                    <div id="detailBodyContent">
+                        <div style="text-align:center;padding:20px;color:#9C27B0;font-size:13px;">Carregando medidas...</div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+        document.body.appendChild(overlay);
+
+        // Close button
+        overlay.querySelector('#massageDetailClose').addEventListener('click', () => overlay.remove());
+        overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+        // Edit button
+        overlay.querySelector('#detailBtnEdit').addEventListener('click', () => {
+            overlay.remove();
+            openMassagePackageModal(pkgId);
+        });
+
+        // Add session button
+        const addSessionBtn = overlay.querySelector('#detailBtnAddSession');
+        if (addSessionBtn) {
+            addSessionBtn.addEventListener('click', () => {
+                openMassageSessionModal(pkgId, () => {
+                    loadDetailSessions(pkgId, overlay);
+                    // Refresh progress bar
+                    const p = massagePackages.find(x => x.id === pkgId);
+                    if (p) {
+                        const pct2 = p.totalSessions > 0 ? Math.min(100, Math.round((p.completedSessions / p.totalSessions) * 100)) : 0;
+                        const fill = overlay.querySelector('.massage-detail-progress-bar-fill');
+                        if (fill) fill.style.width = pct2 + '%';
+                        const lbl = overlay.querySelector('.massage-detail-progress-label');
+                        if (lbl) lbl.textContent = `${p.completedSessions}/${p.totalSessions} sessões`;
+                    }
+                });
+            });
+        }
+
+        // Add measure button
+        overlay.querySelector('#detailBtnAddMeasure').addEventListener('click', () => {
+            openMassageBodyTrackingModal(pkgId, () => loadDetailBodyTracking(pkgId, overlay));
+        });
+
+        // Load data
+        await loadDetailSessions(pkgId, overlay);
+        await loadDetailBodyTracking(pkgId, overlay);
+    }
+
+    async function loadDetailSessions(pkgId, panelEl) {
+        const listEl = panelEl.querySelector('#detailSessionsList');
+        if (!listEl) return;
+        try {
+            const sessions = await apiRequest(`/massage-sessions/${pkgId}`);
+            if (sessions.length === 0) {
+                listEl.innerHTML = `<p style="text-align:center;color:var(--text-secondary,#888);font-size:13px;padding:20px;">Nenhuma sessão registrada ainda.</p>`;
+                return;
+            }
+            listEl.innerHTML = sessions.map((s, i) => {
+                const stars = [1,2,3,4,5].map(n => `<span class="massage-session-star ${n <= (s.satisfaction||5) ? '' : 'empty'}">★</span>`).join('');
+                const dateFmt = s.sessionDate ? s.sessionDate.split('-').reverse().join('/') : '—';
+                return `<div class="massage-session-item">
+                    <div class="massage-session-number">${sessions.length - i}</div>
+                    <div class="massage-session-content">
+                        <div class="massage-session-date">📅 ${dateFmt}</div>
+                        ${s.observations ? `<div class="massage-session-obs">${s.observations}</div>` : '<div class="massage-session-obs" style="color:#bbb;">Sem observações</div>'}
+                        <div class="massage-session-stars">${stars}</div>
+                    </div>
+                    <button class="massage-session-delete" data-sess-id="${s.id}" title="Excluir sessão">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                </div>`;
+            }).join('');
+
+            listEl.querySelectorAll('.massage-session-delete').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    showConfirmDialog({
+                        title: 'Excluir Sessão',
+                        message: 'Tem certeza que deseja excluir esta sessão registrada?',
+                        confirmText: 'Excluir',
+                        onConfirm: async () => {
+                            try {
+                                const result = await apiRequest(`/massage-sessions/${btn.dataset.sessId}`, { method: 'DELETE' });
+                                const pkgLocal = massagePackages.find(p => p.id === pkgId);
+                                if (pkgLocal && result) {
+                                    pkgLocal.completedSessions = Math.max(0, pkgLocal.completedSessions - 1);
+                                    pkgLocal.status = pkgLocal.completedSessions >= pkgLocal.totalSessions ? 'inativo' : 'ativo';
+                                }
+                                await loadDetailSessions(pkgId, panelEl);
+                                updateMassageSummary();
+                                renderMassagePackagesList();
+                                showToast('Sessão excluída.', 'warning');
+                            } catch (e) {
+                                showToast('Erro ao excluir sessão.', 'error');
+                            }
+                        }
+                    });
+                });
+            });
+        } catch (e) {
+            listEl.innerHTML = `<p style="color:#EF5350;font-size:13px;text-align:center;padding:20px;">Erro ao carregar sessões.</p>`;
+        }
+    }
+
+    async function loadDetailBodyTracking(pkgId, panelEl) {
+        const contentEl = panelEl.querySelector('#detailBodyContent');
+        if (!contentEl) return;
+        try {
+            const records = await apiRequest(`/massage-body-tracking/${pkgId}`);
+
+            if (records.length === 0) {
+                contentEl.innerHTML = `<p style="text-align:center;color:var(--text-secondary,#888);font-size:13px;padding:20px;">Nenhuma medida registrada ainda. Registre a avaliação inicial!</p>`;
+                return;
+            }
+
+            // Table
+            const fields = [
+                { key: 'weight', label: 'Peso (kg)' },
+                { key: 'waist', label: 'Cintura (cm)' },
+                { key: 'abdomen', label: 'Abdômen (cm)' },
+                { key: 'hip', label: 'Quadril (cm)' },
+                { key: 'thighR', label: 'Coxa D (cm)' },
+                { key: 'thighL', label: 'Coxa E (cm)' },
+                { key: 'armR', label: 'Braço D (cm)' },
+                { key: 'armL', label: 'Braço E (cm)' }
+            ];
+
+            // IMC calculation helper
+            const calcImc = (r) => {
+                if (r.weight && r.height) {
+                    const hm = r.height / 100;
+                    return (r.weight / (hm * hm)).toFixed(1);
+                }
+                return null;
+            };
+
+            const delta = (curr, prev, field) => {
+                if (curr[field] === null || curr[field] === undefined) return '—';
+                if (prev === null || prev[field] === null || prev[field] === undefined) return `<span>${curr[field]}</span>`;
+                const diff = curr[field] - prev[field];
+                if (Math.abs(diff) < 0.05) return `<span>${curr[field]} <span class="massage-delta-same">=</span></span>`;
+                // For weight/measurements, less is generally better
+                const isImprovement = diff < 0;
+                const cls = isImprovement ? 'massage-delta-pos' : 'massage-delta-neg';
+                const arrow = diff > 0 ? '▲' : '▼';
+                return `<span>${curr[field]} <span class="${cls}">${arrow}${Math.abs(diff).toFixed(1)}</span></span>`;
+            };
+
+            let tableHTML = `<div class="massage-tracking-table-wrap"><table class="massage-tracking-table"><thead><tr>
+                <th>Medida</th>
+                ${records.map((r, i) => {
+                    const d = r.measureDate ? r.measureDate.split('-').reverse().join('/') : '—';
+                    return `<th>${d}${i === 0 ? ' <span style="color:#9C27B0;font-size:9px;">INICIAL</span>' : ''}</th>`;
+                }).join('')}
+                <th></th>
+            </tr></thead><tbody>`;
+
+            fields.forEach(f => {
+                tableHTML += `<tr><td>${f.label}</td>`;
+                records.forEach((r, i) => {
+                    const prev = i > 0 ? records[i-1] : null;
+                    tableHTML += `<td>${delta(r, prev, f.key)}</td>`;
+                });
+                tableHTML += `<td></td></tr>`;
+            });
+
+            // IMC row
+            tableHTML += `<tr><td>IMC</td>`;
+            records.forEach(r => {
+                const imc = calcImc(r);
+                let imcLabel = '';
+                if (imc) {
+                    const v = parseFloat(imc);
+                    imcLabel = v < 18.5 ? '(Abaixo do peso)' : v < 25 ? '(Normal)' : v < 30 ? '(Sobrepeso)' : '(Obesidade)';
+                }
+                tableHTML += `<td>${imc ? `${imc} <span style="font-size:10px;color:#9E9E9E;">${imcLabel}</span>` : '—'}</td>`;
+            });
+            tableHTML += `<td></td></tr>`;
+
+            // Delete row
+            tableHTML += `<tr><td style="color:var(--text-secondary,#888);font-weight:500;">Excluir</td>`;
+            records.forEach(r => {
+                tableHTML += `<td><button class="massage-track-delete" data-track-id="${r.id}" title="Excluir esta medição">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button></td>`;
+            });
+            tableHTML += `<td></td></tr>`;
+            tableHTML += `</tbody></table></div>`;
+
+            // Sparkline charts for key metrics
+            const chartsData = [
+                { key: 'weight', label: 'Peso (kg)', color: '#9C27B0' },
+                { key: 'abdomen', label: 'Abdômen (cm)', color: '#E91E63' },
+                { key: 'waist', label: 'Cintura (cm)', color: '#FF9800' },
+                { key: 'hip', label: 'Quadril (cm)', color: '#2196F3' },
+                { key: 'thighR', label: 'Coxa D (cm)', color: '#4CAF50' },
+                { key: 'armR', label: 'Braço D (cm)', color: '#FF5722' }
+            ].filter(c => records.some(r => r[c.key] !== null && r[c.key] !== undefined));
+
+            let chartsHTML = '';
+            if (records.length >= 2 && chartsData.length > 0) {
+                chartsHTML = `<div class="massage-charts-grid">` +
+                chartsData.map(c => {
+                    const vals = records.map(r => r[c.key]).filter(v => v !== null && v !== undefined);
+                    if (vals.length < 2) return '';
+                    const min = Math.min(...vals);
+                    const max = Math.max(...vals);
+                    const range = max - min || 1;
+                    const w = 200; const h = 70; const pad = 8;
+                    const pts = vals.map((v, i) => {
+                        const x = pad + (i / (vals.length - 1)) * (w - pad * 2);
+                        const y = h - pad - ((v - min) / range) * (h - pad * 2);
+                        return `${x},${y}`;
+                    }).join(' ');
+                    const firstLast = vals.length >= 2 ? (vals[vals.length-1] - vals[0]).toFixed(1) : null;
+                    const diffLabel = firstLast !== null ? (parseFloat(firstLast) > 0 ? `<span style="color:#EF5350;">▲ +${firstLast}</span>` : `<span style="color:#4CAF50;">▼ ${firstLast}</span>`) : '';
+                    return `<div class="massage-chart-container">
+                        <div class="massage-chart-title">${c.label} ${diffLabel}</div>
+                        <svg class="massage-sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+                            <defs><linearGradient id="grad_${c.key}" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="${c.color}" stop-opacity="0.3"/>
+                                <stop offset="100%" stop-color="${c.color}" stop-opacity="0.02"/>
+                            </linearGradient></defs>
+                            <polyline points="${pts}" fill="none" stroke="${c.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+                            ${vals.map((v, i) => {
+                                const x = pad + (i / (vals.length - 1)) * (w - pad * 2);
+                                const y = h - pad - ((v - min) / range) * (h - pad * 2);
+                                return `<circle cx="${x}" cy="${y}" r="3.5" fill="${c.color}" stroke="#fff" stroke-width="1.5"/>`;
+                            }).join('')}
+                        </svg>
+                        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-secondary,#888);margin-top:4px;">
+                            <span>${records[0].measureDate ? records[0].measureDate.split('-').reverse().join('/') : ''}</span>
+                            <span>${records[records.length-1].measureDate ? records[records.length-1].measureDate.split('-').reverse().join('/') : ''}</span>
+                        </div>
+                    </div>`;
+                }).join('') + `</div>`;
+            }
+
+            // Notes from records
+            const notesHTML = records.filter(r => r.notes).map(r => {
+                const d = r.measureDate ? r.measureDate.split('-').reverse().join('/') : '—';
+                return `<div style="padding:8px 12px;background:rgba(156,39,176,0.05);border-radius:8px;margin-top:8px;font-size:12px;color:var(--text-secondary,#666);">
+                    <strong style="color:#9C27B0;">${d}:</strong> ${r.notes}
+                </div>`;
+            }).join('');
+
+            contentEl.innerHTML = tableHTML + chartsHTML + (notesHTML ? `<div style="margin-top:12px;">${notesHTML}</div>` : '');
+
+            // Delete tracking record
+            contentEl.querySelectorAll('.massage-track-delete').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    showConfirmDialog({
+                        title: 'Excluir Medição',
+                        message: 'Tem certeza que deseja excluir esta avaliação corporal?',
+                        confirmText: 'Excluir',
+                        onConfirm: async () => {
+                            try {
+                                await apiRequest(`/massage-body-tracking/${btn.dataset.trackId}`, { method: 'DELETE' });
+                                await loadDetailBodyTracking(pkgId, panelEl);
+                                showToast('Medição excluída.', 'warning');
+                            } catch (e) {
+                                showToast('Erro ao excluir medição.', 'error');
+                            }
+                        }
+                    });
+                });
+            });
+        } catch (e) {
+            contentEl.innerHTML = `<p style="color:#EF5350;font-size:13px;text-align:center;padding:20px;">Erro ao carregar medidas corporais.</p>`;
+        }
     }
 
 });
