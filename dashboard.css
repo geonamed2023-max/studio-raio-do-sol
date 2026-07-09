@@ -9854,3 +9854,20 @@ body.dark-mode .massage-modal-btn-cancel:hover { background: rgba(255,255,255,0.
 body.dark-mode .massage-progress-bar-bg { background: rgba(156,39,176,0.15); }
 body.dark-mode .massage-empty-state h3 { color: rgba(255,255,255,0.7); }
 body.dark-mode .massage-empty-state p { color: rgba(255,255,255,0.4); }
+
+/* ============================================================
+   LOCKDOWN ADRIANA CRUZ — Ocultar comissão, receita e serviços
+   ============================================================ */
+body.user-adriana-cruz #statReceita,
+body.user-adriana-cruz #statServicos,
+body.user-adriana-cruz #statProfissionais,
+body.user-adriana-cruz [data-page="relatorios"] {
+  display: none !important;
+}
+
+@media (min-width: 769px) {
+  body.user-adriana-cruz .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+

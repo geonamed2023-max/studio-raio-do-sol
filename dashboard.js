@@ -29,6 +29,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // Add lockdown class to body immediately if Adriana Cruz (stops flashing/delay)
+    const isAdrianaCruzImmediate = session.name && (
+        session.name.toLowerCase().includes('adriana') &&
+        session.name.toLowerCase().includes('cruz')
+    );
+    if (isAdrianaCruzImmediate) {
+        document.body.classList.add('user-adriana-cruz');
+    }
+
     // ===== Sync admin profile from localStorage if admin =====
     if (session.role === 'admin') {
         const savedAdmin = JSON.parse(localStorage.getItem('raiosol_admin_profile') || 'null');
@@ -8529,6 +8538,17 @@ function closeAppointmentModal() {
                     session.foto = dbUser.avatar || session.foto || null;
                     session.role = dbUser.role || session.role;
                     sessionStorage.setItem('raiosol_session', JSON.stringify(session));
+
+                    // Sync the body class dynamically
+                    const isAdrianaCruzDynamic = session.name && (
+                        session.name.toLowerCase().includes('adriana') &&
+                        session.name.toLowerCase().includes('cruz')
+                    );
+                    if (isAdrianaCruzDynamic) {
+                        document.body.classList.add('user-adriana-cruz');
+                    } else {
+                        document.body.classList.remove('user-adriana-cruz');
+                    }
                 }
             } catch (e) {
                 console.warn('Aviso: não foi possível sincronizar perfil do usuário:', e.message);

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'raiodosol-cache-v1';
+const CACHE_NAME = 'raiodosol-cache-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
