@@ -9872,7 +9872,7 @@ body.user-adriana-cruz [data-page="relatorios"] {
 }
 
 /* ============================================================
-   PRELOADER — Tela de Carregamento Premium
+   PRELOADER — Tela de Carregamento Premium (Suporta Claro/Escuro)
    ============================================================ */
 .app-preloader {
   position: fixed;
@@ -9880,8 +9880,8 @@ body.user-adriana-cruz [data-page="relatorios"] {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: #111827; /* Fundo escuro premium */
-  color: #ffffff;
+  background: #F9FAFB; /* Fundo claro premium */
+  color: #1F2937;
   z-index: 100000;
   display: flex;
   align-items: center;
@@ -9889,6 +9889,12 @@ body.user-adriana-cruz [data-page="relatorios"] {
   font-family: 'Inter', sans-serif;
   transition: opacity 0.5s ease, transform 0.5s ease;
   overflow: hidden;
+}
+
+/* Modo escuro dinâmico para o Preloader */
+body.dark-mode .app-preloader {
+  background: #111827; /* Fundo escuro premium */
+  color: #ffffff;
 }
 
 .app-preloader.fade-out {
@@ -9916,12 +9922,17 @@ body.user-adriana-cruz [data-page="relatorios"] {
   height: 100%;
   object-fit: contain;
   border-radius: 50%;
-  border: 2px solid rgba(201, 168, 76, 0.4);
-  background: #1f2937;
+  border: 2px solid rgba(201, 168, 76, 0.5);
+  background: #ffffff;
   padding: 10px;
   position: relative;
   z-index: 2;
   animation: preloaderPulse 2s infinite ease-in-out;
+}
+
+body.dark-mode .preloader-logo {
+  background: #1f2937;
+  border: 2px solid rgba(201, 168, 76, 0.4);
 }
 
 .preloader-logo-glow {
@@ -9947,20 +9958,28 @@ body.user-adriana-cruz [data-page="relatorios"] {
 
 .preloader-subtitle {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(31, 41, 55, 0.6);
   text-transform: uppercase;
   letter-spacing: 2px;
   margin: 0 0 32px;
+}
+
+body.dark-mode .preloader-subtitle {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 /* Barra de progresso linear fina */
 .preloader-bar-wrap {
   width: 100%;
   height: 4px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(31, 41, 55, 0.08);
   border-radius: 2px;
   overflow: hidden;
   margin-bottom: 16px;
+}
+
+body.dark-mode .preloader-bar-wrap {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .preloader-bar {
@@ -9974,10 +9993,14 @@ body.user-adriana-cruz [data-page="relatorios"] {
 
 .preloader-status {
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(31, 41, 55, 0.5);
   font-style: italic;
   margin: 0;
   animation: preloaderTextPulse 1.5s infinite alternate;
+}
+
+body.dark-mode .preloader-status {
+  color: rgba(255, 255, 255, 0.4);
 }
 
 /* Partículas animadas de fundo */
@@ -9996,9 +10019,13 @@ body.user-adriana-cruz [data-page="relatorios"] {
   display: block;
   width: 4px;
   height: 4px;
-  background: rgba(201, 168, 76, 0.15);
+  background: rgba(201, 168, 76, 0.2);
   border-radius: 50%;
   animation: moveParticle 8s infinite linear;
+}
+
+body.dark-mode .preloader-particles span {
+  background: rgba(201, 168, 76, 0.15);
 }
 
 /* Configuração de Posições e Tempos das partículas */
