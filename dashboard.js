@@ -4056,6 +4056,23 @@ function closeAppointmentModal() {
         }
     }
 
+    /** Mark all current notifications as read */
+    function markAllNotificationsAsRead() {
+        const readNotifIds = JSON.parse(localStorage.getItem('raiosol_read_notifications') || '[]');
+        let changed = false;
+        notifData.forEach(n => {
+            const stringId = String(n.id);
+            if (!readNotifIds.includes(stringId)) {
+                readNotifIds.push(stringId);
+                changed = true;
+            }
+        });
+        if (changed) {
+            localStorage.setItem('raiosol_read_notifications', JSON.stringify(readNotifIds));
+            rebuildNotifications();
+        }
+    }
+
     /** Render dynamic notifications in the right sidebar panel */
     function renderSidebarNotifications() {
         const sidebarList = document.querySelector('#panelNotificacoes .notifications-list');
@@ -4154,7 +4171,11 @@ function closeAppointmentModal() {
         notifBell.addEventListener('click', (e) => {
             e.stopPropagation();
             if (notifDropdown) {
+                const wasOpen = notifDropdown.classList.contains('notif-open');
                 notifDropdown.classList.toggle('notif-open');
+                if (!wasOpen) {
+                    markAllNotificationsAsRead();
+                }
             }
         });
     }
