@@ -600,25 +600,89 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function saveAppointments() {
-        resolveOverlappingAppointments();
+    // === Operações pós-save comuns ===
+    async function afterAppointmentChange() {
+        recalculateClientLevels();
+        await saveClients(clients);
+        initStatsAnimation();
+        rebuildNotifications();
+    }
+
+    // === CRIAR um agendamento no servidor ===
+    async function createAppointmentOnServer(appt) {
         try {
-            await apiRequest('/appointments/sync', {
+            const result = await apiRequest('/appointments', {
                 method: 'POST',
-                body: appointments
+                body: appt
             });
-            // Recalculate client levels when appointments history changes
-            recalculateClientLevels();
-            await saveClients(clients);
-            
-            initStatsAnimation();
-            rebuildNotifications();
-            showToast("Agendamentos salvos com sucesso!", "success");
+            // If server generated an ID, update the local object
+            if (result.id && !appt.id) {
+                appt.id = result.id;
+            }
+            await afterAppointmentChange();
+            showToast("Agendamento salvo com sucesso!", "success");
+            return true;
         } catch (e) {
-            console.error("Erro ao salvar agendamentos no backend:", e);
-            showToast("Erro ao salvar no banco de dados: " + e.message, "error");
+            console.error("Erro ao criar agendamento:", e);
+            showToast("Erro ao salvar agendamento: " + e.message, "error");
+            return false;
         }
     }
+
+    // === ATUALIZAR um agendamento no servidor ===
+    async function updateAppointmentOnServer(apptId, data) {
+        try {
+            await apiRequest(`/appointments/${encodeURIComponent(apptId)}`, {
+                method: 'PUT',
+                body: data
+            });
+            await afterAppointmentChange();
+            showToast("Agendamento atualizado com sucesso!", "success");
+            return true;
+        } catch (e) {
+            console.error("Erro ao atualizar agendamento:", e);
+            showToast("Erro ao atualizar agendamento: " + e.message, "error");
+            return false;
+        }
+    }
+
+    // === DELETAR um agendamento no servidor ===
+    async function deleteAppointmentOnServer(apptId) {
+        try {
+            await apiRequest(`/appointments/${encodeURIComponent(apptId)}`, {
+                method: 'DELETE'
+            });
+            await afterAppointmentChange();
+            showToast("Agendamento removido com sucesso!", "success");
+            return true;
+        } catch (e) {
+            console.error("Erro ao deletar agendamento:", e);
+            showToast("Erro ao remover agendamento: " + e.message, "error");
+            return false;
+        }
+    }
+
+    // === ATUALIZAR em lote (para operações de faturamento) ===
+    async function batchUpdateAppointmentsOnServer(updates) {
+        // updates = [ { id: 'ap_xxx', data: { payoutInvoiced: true, ... } }, ... ]
+        try {
+            const promises = updates.map(u => 
+                apiRequest(`/appointments/${encodeURIComponent(u.id)}`, {
+                    method: 'PUT',
+                    body: u.data
+                })
+            );
+            await Promise.all(promises);
+            await afterAppointmentChange();
+            showToast("Agendamentos atualizados com sucesso!", "success");
+            return true;
+        } catch (e) {
+            console.error("Erro ao atualizar agendamentos em lote:", e);
+            showToast("Erro ao atualizar agendamentos: " + e.message, "error");
+            return false;
+        }
+    }
+
 
     function resolveOverlappingAppointments() {
         // Group appointments by date and professional
@@ -3283,10 +3347,26 @@ function closeAppointmentModal() {
                         console.log(`[Autoregister] Client "${clientNameClean}" auto-registered locally.`);
                     }
 
-                    saveAppointments();
+                    updateAppointmentOnServer(editingApptId, {
+                        professionalId: originalAppt.professionalId,
+                        professionalName: originalAppt.professionalName,
+                        professionalInitials: originalAppt.professionalInitials,
+                        professionalColor: originalAppt.professionalColor,
+                        client: originalAppt.client,
+                        serviceId: originalAppt.serviceId,
+                        serviceName: originalAppt.serviceName,
+                        servicePrice: originalAppt.servicePrice,
+                        date: originalAppt.date,
+                        timeStart: originalAppt.timeStart,
+                        timeEnd: originalAppt.timeEnd,
+                        isMutual: originalAppt.isMutual,
+                        professionalId2: originalAppt.professionalId2,
+                        professionalName2: originalAppt.professionalName2,
+                        professionalInitials2: originalAppt.professionalInitials2,
+                        professionalColor2: originalAppt.professionalColor2
+                    });
                     renderAppointments();
                     closeAppointmentModal();
-                    showToast('Agendamento atualizado com sucesso!', 'success');
                     return;
                 }
             }
@@ -3309,10 +3389,10 @@ function closeAppointmentModal() {
 
             // Save
             appointments.push(newAppointment);
-            saveAppointments();
+            createAppointmentOnServer(newAppointment);
 
             // Add visually to the calendar grid
-            addAppointmentToGrid(newAppointment);
+            renderAppointments();
 
             // Close modal and show success
             closeAppointmentModal();
@@ -3751,7 +3831,7 @@ function closeAppointmentModal() {
     function addAppointmentToGrid(appt) {
         if (!appointments.find(a => a.id === appt.id)) {
             appointments.push(appt);
-            saveAppointments();
+            createAppointmentOnServer(appt);
         }
         renderAppointments();
     }
@@ -4089,7 +4169,7 @@ function closeAppointmentModal() {
             };
 
             appointments.push(blockObj);
-            saveAppointments();
+            createAppointmentOnServer(blockObj);
             close();
             renderAppointments();
         });
@@ -7081,7 +7161,7 @@ function closeAppointmentModal() {
                                 confirmText: 'Excluir',
                                 onConfirm: () => {
                                     appointments = appointments.filter(a => String(a.id) !== String(apptId));
-                                    saveAppointments();
+                                    deleteAppointmentOnServer(apptId);
                                     showToast(`Registro de ${apptObj.client} excluído do histórico!`, 'success');
                                     renderReportsPage();
                                 }
@@ -7113,7 +7193,7 @@ function closeAppointmentModal() {
                                         confirmText: 'Excluir',
                                         onConfirm: () => {
                                             appointments = appointments.filter(a => String(a.id) !== String(apptId));
-                                            saveAppointments();
+                                            deleteAppointmentOnServer(apptId);
                                             showToast('Registro excluído!', 'success');
                                             renderReportsPage();
                                         }
@@ -7635,7 +7715,7 @@ function closeAppointmentModal() {
                         confirmText: 'Remover',
                         onConfirm: () => {
                             appointments = appointments.filter(a => String(a.id) !== String(apptObj.id));
-                            saveAppointments();
+                            deleteAppointmentOnServer(apptObj.id);
                             closePopover();
                             renderAppointments();
                         }
@@ -7685,7 +7765,7 @@ function closeAppointmentModal() {
                     confirmText: 'Desmarcar',
                     onConfirm: () => {
                         apptObj.status = 'Cancelado';
-                        saveAppointments();
+                        updateAppointmentOnServer(apptObj.id, { status: 'Cancelado' });
                         showToast(`Agendamento de ${apptObj.client} marcado como Cancelado`, 'warning');
                         closePopover();
                         renderAppointments();
@@ -7701,7 +7781,7 @@ function closeAppointmentModal() {
                 e.stopPropagation();
                 if (isCompletedOrCancelled) return;
                 apptObj.status = 'Concluído';
-                saveAppointments();
+                updateAppointmentOnServer(apptObj.id, { status: 'Concluído' });
                 showToast(`Serviço de ${apptObj.client} concluído com sucesso!`, 'success');
                 closePopover();
                 renderAppointments();
@@ -8444,7 +8524,23 @@ function closeAppointmentModal() {
         payouts.unshift(newPayout);
         await savePayouts(payouts);
         
-        await saveAppointments();
+        // Batch update: mark appointments as invoiced with final prices
+        const batchUpdates = [];
+        currentPayoutAppointments.forEach(appt => {
+            const originalAppt = appointments.find(a => String(a.id) === String(appt.id));
+            if (originalAppt) {
+                batchUpdates.push({
+                    id: originalAppt.id,
+                    data: {
+                        servicePrice: originalAppt.servicePrice,
+                        payoutInvoiced: originalAppt.payoutInvoiced
+                    }
+                });
+            }
+        });
+        if (batchUpdates.length > 0) {
+            await batchUpdateAppointmentsOnServer(batchUpdates);
+        }
         
         currentPayoutAppointments = [];
         showToast('Faturamento concluído e fatura consolidada!', 'success');
@@ -8712,7 +8808,20 @@ function closeAppointmentModal() {
         payouts.splice(payoutIdx, 1);
         await savePayouts(payouts);
         
-        await saveAppointments();
+        // Batch update: rollback payoutInvoiced flag
+        const rollbackUpdates = [];
+        payout.services.forEach(s => {
+            const originalAppt = appointments.find(a => String(a.id) === String(s.id));
+            if (originalAppt) {
+                rollbackUpdates.push({
+                    id: originalAppt.id,
+                    data: { payoutInvoiced: false }
+                });
+            }
+        });
+        if (rollbackUpdates.length > 0) {
+            await batchUpdateAppointmentsOnServer(rollbackUpdates);
+        }
         
         showToast(`Fatura excluída com sucesso! ${rollbackCount} serviços estornados.`, 'success');
         

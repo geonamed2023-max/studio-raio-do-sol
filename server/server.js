@@ -724,6 +724,157 @@ app.get('/api/appointments', authenticateToken, async (req, res) => {
     }
 });
 
+// ==========================================
+// ROTAS INDIVIDUAIS DE AGENDAMENTOS (CRUD)
+// Evita condição de corrida: cada operação
+// afeta apenas UM agendamento por vez.
+// ==========================================
+
+// CRIAR um agendamento
+app.post('/api/appointments', authenticateToken, async (req, res) => {
+    const a = req.body;
+    if (!a || !a.date || !a.timeStart || !a.timeEnd) {
+        return res.status(400).json({ error: 'Dados incompletos para criar agendamento.' });
+    }
+
+    try {
+        const apptId = a.id || 'ap_' + Date.now() + Math.random().toString(36).substr(2, 5);
+        await db.query(
+            `INSERT INTO appointments (
+                id, professional_id, professional_name, professional_initials, professional_color,
+                client, phone, service_id, service_name, service_price,
+                date, time_start, time_end, status, payout_invoiced, created_by,
+                is_mutual, professional2_id, professional2_name, professional2_initials, professional2_color
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+            [
+                apptId,
+                (a.professionalId && String(a.professionalId).trim() !== '') ? String(a.professionalId) : null,
+                a.professionalName || '',
+                a.professionalInitials || '',
+                a.professionalColor || '',
+                a.client || '',
+                a.phone || '',
+                (a.serviceId && String(a.serviceId).trim() !== '') ? String(a.serviceId) : null,
+                a.serviceName || '',
+                parseFloat(a.servicePrice) || 0,
+                a.date, a.timeStart, a.timeEnd,
+                a.status || 'Agendado',
+                a.payoutInvoiced || false,
+                a.createdBy || '',
+                a.isMutual || false,
+                (a.professionalId2 && String(a.professionalId2).trim() !== '') ? String(a.professionalId2) : null,
+                a.professionalName2 || '',
+                a.professionalInitials2 || '',
+                a.professionalColor2 || ''
+            ]
+        );
+
+        broadcastUpdate();
+        res.json({ success: true, id: apptId });
+    } catch (err) {
+        console.error('Erro ao criar agendamento:', err);
+        res.status(500).json({ error: 'Erro ao criar agendamento: ' + err.message });
+    }
+});
+
+// ATUALIZAR um agendamento existente
+app.put('/api/appointments/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const a = req.body;
+
+    if (!a || Object.keys(a).length === 0) {
+        return res.status(400).json({ error: 'Dados vazios para atualização.' });
+    }
+
+    try {
+        // Build dynamic SET clause from provided fields
+        const fieldMap = {
+            professionalId: 'professional_id',
+            professionalName: 'professional_name',
+            professionalInitials: 'professional_initials',
+            professionalColor: 'professional_color',
+            client: 'client',
+            phone: 'phone',
+            serviceId: 'service_id',
+            serviceName: 'service_name',
+            servicePrice: 'service_price',
+            date: 'date',
+            timeStart: 'time_start',
+            timeEnd: 'time_end',
+            status: 'status',
+            payoutInvoiced: 'payout_invoiced',
+            createdBy: 'created_by',
+            isMutual: 'is_mutual',
+            professionalId2: 'professional2_id',
+            professionalName2: 'professional2_name',
+            professionalInitials2: 'professional2_initials',
+            professionalColor2: 'professional2_color'
+        };
+
+        const setClauses = [];
+        const values = [];
+        let paramIdx = 1;
+
+        for (const [jsKey, dbCol] of Object.entries(fieldMap)) {
+            if (a.hasOwnProperty(jsKey)) {
+                let val = a[jsKey];
+                // Handle nullable ID fields
+                if ((jsKey === 'professionalId' || jsKey === 'serviceId' || jsKey === 'professionalId2') 
+                    && (val === '' || val === null || val === undefined)) {
+                    val = null;
+                } else if (jsKey === 'servicePrice') {
+                    val = parseFloat(val) || 0;
+                }
+                setClauses.push(`${dbCol} = $${paramIdx}`);
+                values.push(val);
+                paramIdx++;
+            }
+        }
+
+        if (setClauses.length === 0) {
+            return res.status(400).json({ error: 'Nenhum campo válido para atualizar.' });
+        }
+
+        values.push(id);
+        const result = await db.query(
+            `UPDATE appointments SET ${setClauses.join(', ')} WHERE id = $${paramIdx}`,
+            values
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Agendamento não encontrado.' });
+        }
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Erro ao atualizar agendamento:', err);
+        res.status(500).json({ error: 'Erro ao atualizar agendamento: ' + err.message });
+    }
+});
+
+// DELETAR um agendamento
+app.delete('/api/appointments/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const result = await db.query('DELETE FROM appointments WHERE id = $1', [id]);
+        
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Agendamento não encontrado.' });
+        }
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Erro ao deletar agendamento:', err);
+        res.status(500).json({ error: 'Erro ao deletar agendamento: ' + err.message });
+    }
+});
+
+// ==========================================
+// ROTA LEGADA DE SYNC (mantida como fallback)
+// ==========================================
 app.post('/api/appointments/sync', authenticateToken, async (req, res) => {
     const list = req.body;
     if (!Array.isArray(list)) {
