@@ -7728,9 +7728,11 @@ function closeAppointmentModal() {
         const isCompletedOrCancelled = apptObj.status === 'Concluído' || apptObj.status === 'Cancelado';
 
         if (session.role === 'admin') {
+            const isCancelled = apptObj.status === 'Cancelado';
+            const isCompleted = apptObj.status === 'Concluído';
             actionPanel.innerHTML = `
                 <button class="btn btn-secondary pop-btn-edit" style="flex: 1; font-size: 13px; padding: 6px; border: 1px solid var(--gold-border); color: var(--gold-800); background: transparent; font-weight: 600; cursor: pointer;">EDITAR</button>
-                <button class="btn btn-secondary pop-btn-cancel" style="flex: 1; font-size: 13px; padding: 6px; border: 1px solid #EF5350; color: #EF5350; background: transparent; font-weight: 600; cursor: pointer;" ${isCompletedOrCancelled ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>CANCELAR</button>
+                <button class="btn btn-secondary pop-btn-cancel" style="flex: 1; font-size: 13px; padding: 6px; border: 1px solid ${isCompleted ? '#FF9800' : '#EF5350'}; color: ${isCompleted ? '#FF9800' : '#EF5350'}; background: transparent; font-weight: 600; cursor: pointer;" ${isCancelled ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>${isCompleted ? 'DESFAZER' : 'CANCELAR'}</button>
                 <button class="btn btn-primary pop-btn-complete" style="flex: 1; font-size: 13px; padding: 6px; background: #4CAF50; border: none; color: #fff; font-weight: 600; cursor: pointer;" ${isCompletedOrCancelled ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>CONCLUIR</button>
             `;
         } else {
@@ -7758,7 +7760,25 @@ function closeAppointmentModal() {
         if (cancelBtn) {
             cancelBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (isCompletedOrCancelled) return;
+                if (apptObj.status === 'Cancelado') return;
+                
+                // If appointment is completed, allow admin to revert to Agendado
+                if (apptObj.status === 'Concluído' && session.role === 'admin') {
+                    showConfirmDialog({
+                        title: 'Desfazer Conclusão',
+                        message: `Deseja reverter o agendamento de <strong>${apptObj.client}</strong> (${apptObj.serviceName}) de volta para <strong>Agendado</strong>?`,
+                        confirmText: 'Desfazer',
+                        onConfirm: () => {
+                            apptObj.status = 'Agendado';
+                            updateAppointmentOnServer(apptObj.id, { status: 'Agendado' });
+                            showToast(`Agendamento de ${apptObj.client} revertido para Agendado`, 'success');
+                            closePopover();
+                            renderAppointments();
+                        }
+                    });
+                    return;
+                }
+                
                 showConfirmDialog({
                     title: 'Desmarcar Agendamento',
                     message: `Tem certeza que deseja desmarcar o agendamento de <strong>${apptObj.client}</strong> para o serviço de <strong>${apptObj.serviceName}</strong>?`,
