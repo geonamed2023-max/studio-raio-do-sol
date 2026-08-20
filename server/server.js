@@ -1416,6 +1416,121 @@ app.delete('/api/massage-body-tracking/:id', authenticateToken, async (req, res)
 });
 
 // ==========================================
+// ROTAS DE MANUTENÇÃO (TEMPORÁRIAS)
+// Exportar e limpar agendamentos antigos
+// ==========================================
+
+// Exportar agendamentos antigos como CSV (antes de uma data)
+app.get('/api/admin/export-old-appointments', authenticateToken, async (req, res) => {
+    try {
+        // Verify admin
+        const session = req.user;
+        if (session.role !== 'admin') {
+            return res.status(403).json({ error: 'Acesso negado.' });
+        }
+
+        const cutoffDate = req.query.before || '2026-08-01';
+        
+        const result = await db.query(
+            'SELECT * FROM appointments WHERE date < $1 ORDER BY date ASC, time_start ASC',
+            [cutoffDate]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.json({ message: 'Nenhum agendamento antigo encontrado.', count: 0 });
+        }
+
+        // Generate CSV
+        const headers = ['id','professional_name','client','phone','service_name','service_price','date','time_start','time_end','status','created_by','created_at'];
+        let csv = headers.join(';') + '\n';
+        
+        result.rows.forEach(row => {
+            const line = headers.map(h => {
+                let val = row[h] !== null && row[h] !== undefined ? String(row[h]) : '';
+                val = val.replace(/;/g, ',').replace(/\n/g, ' ');
+                return val;
+            }).join(';');
+            csv += line + '\n';
+        });
+
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename=agendamentos_antes_${cutoffDate}.csv`);
+        res.send('\uFEFF' + csv); // BOM for Excel UTF-8
+    } catch (err) {
+        console.error('Erro ao exportar:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Contar agendamentos antigos (preview antes de deletar)
+app.get('/api/admin/count-old-appointments', authenticateToken, async (req, res) => {
+    try {
+        const session = req.user;
+        if (session.role !== 'admin') {
+            return res.status(403).json({ error: 'Acesso negado.' });
+        }
+
+        const cutoffDate = req.query.before || '2026-08-01';
+        
+        const countResult = await db.query(
+            'SELECT COUNT(*) as total FROM appointments WHERE date < $1',
+            [cutoffDate]
+        );
+        
+        const keepResult = await db.query(
+            'SELECT COUNT(*) as total FROM appointments WHERE date >= $1',
+            [cutoffDate]
+        );
+
+        // Get database size
+        const sizeResult = await db.query(`
+            SELECT pg_size_pretty(pg_database_size(current_database())) as db_size,
+                   pg_database_size(current_database()) as db_size_bytes
+        `);
+
+        res.json({
+            toDelete: parseInt(countResult.rows[0].total),
+            toKeep: parseInt(keepResult.rows[0].total),
+            cutoffDate,
+            dbSize: sizeResult.rows[0].db_size,
+            dbSizeBytes: parseInt(sizeResult.rows[0].db_size_bytes)
+        });
+    } catch (err) {
+        console.error('Erro ao contar:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Deletar agendamentos antigos
+app.delete('/api/admin/purge-old-appointments', authenticateToken, async (req, res) => {
+    try {
+        const session = req.user;
+        if (session.role !== 'admin') {
+            return res.status(403).json({ error: 'Acesso negado.' });
+        }
+
+        const cutoffDate = req.query.before || '2026-08-01';
+        
+        const result = await db.query(
+            'DELETE FROM appointments WHERE date < $1',
+            [cutoffDate]
+        );
+
+        // VACUUM to reclaim disk space
+        await db.query('VACUUM');
+
+        res.json({
+            success: true,
+            deletedCount: result.rowCount,
+            message: `${result.rowCount} agendamentos anteriores a ${cutoffDate} foram excluídos.`
+        });
+    } catch (err) {
+        console.error('Erro ao purgar:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==========================================
 // INICIALIZAÇÃO DO SERVIDOR
 // ==========================================
 
