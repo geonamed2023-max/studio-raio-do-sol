@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const db = require('./db');
+const autoBackup = require('./auto-backup');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const app = express();
@@ -770,6 +771,7 @@ app.post('/api/appointments', authenticateToken, async (req, res) => {
         );
 
         broadcastUpdate();
+        autoBackup.mirrorCreateAppointment({ ...a, id: apptId });
         res.json({ success: true, id: apptId });
     } catch (err) {
         console.error('Erro ao criar agendamento:', err);
@@ -836,17 +838,12 @@ app.put('/api/appointments/:id', authenticateToken, async (req, res) => {
         }
 
         values.push(id);
-        const result = await db.query(
-            `UPDATE appointments SET ${setClauses.join(', ')} WHERE id = $${paramIdx}`,
-            values
-        );
-
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: 'Agendamento não encontrado.' });
-        }
+        const query = `UPDATE appointments SET ${setClauses.join(', ')} WHERE id = $${paramIdx}`;
+        await db.query(query, values);
 
         broadcastUpdate();
-        res.json({ success: true });
+        autoBackup.mirrorCreateAppointment({ ...a, id });
+        res.json({ success: true, id });
     } catch (err) {
         console.error('Erro ao atualizar agendamento:', err);
         res.status(500).json({ error: 'Erro ao atualizar agendamento: ' + err.message });
@@ -865,6 +862,7 @@ app.delete('/api/appointments/:id', authenticateToken, async (req, res) => {
         }
 
         broadcastUpdate();
+        autoBackup.mirrorDeleteAppointment(id);
         res.json({ success: true });
     } catch (err) {
         console.error('Erro ao deletar agendamento:', err);
@@ -1530,6 +1528,38 @@ app.delete('/api/admin/purge-old-appointments', authenticateToken, async (req, r
     }
 });
 
+// Rota para Download de Backup Completo (JSON)
+app.get('/api/admin/backup-download', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Acesso negado.' });
+        }
+        const appts = await db.query('SELECT * FROM appointments ORDER BY date ASC, time_start ASC');
+        const clients = await db.query('SELECT * FROM clients ORDER BY name ASC');
+        const services = await db.query('SELECT * FROM services ORDER BY name ASC');
+        const users = await db.query('SELECT id, name, email, phone, role, status, specialty FROM users');
+
+        const backupData = {
+            exportDate: new Date().toISOString(),
+            totalAppointments: appts.rows.length,
+            totalClients: clients.rows.length,
+            totalServices: services.rows.length,
+            appointments: appts.rows,
+            clients: clients.rows,
+            services: services.rows,
+            users: users.rows
+        };
+
+        const filename = `backup_studio_raio_do_sol_${new Date().toISOString().split('T')[0]}.json`;
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(JSON.stringify(backupData, null, 2));
+    } catch (err) {
+        console.error('Erro ao gerar backup:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ==========================================
 // INICIALIZAÇÃO DO SERVIDOR
 // ==========================================
@@ -1551,4 +1581,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(` Acesso local:   http://localhost:${PORT}`);
     console.log(` Acesso celular: http://${localIP}:${PORT}`);
     console.log(`=================================================`);
+
+    // Iniciar rotina de backup e espelhamento diário
+    autoBackup.startDailyBackupRoutine(db);
 });
