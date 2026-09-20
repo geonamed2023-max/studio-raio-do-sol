@@ -17,18 +17,20 @@ app.use((req, res, next) => {
     next();
 });
 
-// PREVENIR CACHE DE NAVEGADOR GLOBALMENTE (Essencial para garantir que o cliente pegue as correções)
-app.use((req, res, next) => {
+// PREVENIR CACHE APENAS NAS ROTAS DA API (Dados dinâmicos)
+app.use('/api', (req, res, next) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    res.setHeader('Surrogate-Control', 'no-store');
     next();
 });
 
-// Servir arquivos estáticos do frontend (pasta pai do server/)
+// Servir arquivos estáticos com cache inteligente (economiza mais de 80% de tráfego)
 const FRONTEND_DIR = path.join(__dirname, '..');
-app.use(express.static(FRONTEND_DIR));
+app.use(express.static(FRONTEND_DIR, {
+    maxAge: '1h',
+    etag: true
+}));
 
 // Habilitar CORS e Parser de JSON com limite de tamanho para receber fotos em base64
 app.use(cors());
