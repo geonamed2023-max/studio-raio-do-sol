@@ -75,6 +75,15 @@ function broadcastUpdate() {
     });
 }
 
+// Healthcheck e status da API
+app.get('/api', (req, res) => {
+    res.json({ status: 'ok', service: 'Studio Raio do Sol API' });
+});
+
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
 // Rota de Inscrição em Eventos de Tempo Real (Sem autenticação direta no SSE pois o payload não contém dados sensíveis)
 app.get('/api/live-updates', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -1566,24 +1575,28 @@ app.get('/api/admin/backup-download', authenticateToken, async (req, res) => {
 // INICIALIZAÇÃO DO SERVIDOR
 // ==========================================
 
-app.listen(PORT, '0.0.0.0', () => {
-    const os = require('os');
-    const nets = os.networkInterfaces();
-    let localIP = 'localhost';
-    for (const name of Object.keys(nets)) {
-        for (const net of nets[name]) {
-            if (net.family === 'IPv4' && !net.internal) {
-                localIP = net.address;
-                break;
+if (require.main === module || !process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+        const os = require('os');
+        const nets = os.networkInterfaces();
+        let localIP = 'localhost';
+        for (const name of Object.keys(nets)) {
+            for (const net of nets[name]) {
+                if (net.family === 'IPv4' && !net.internal) {
+                    localIP = net.address;
+                    break;
+                }
             }
         }
-    }
-    console.log(`=================================================`);
-    console.log(` Studio Raio do Sol - Servidor rodando!`);
-    console.log(` Acesso local:   http://localhost:${PORT}`);
-    console.log(` Acesso celular: http://${localIP}:${PORT}`);
-    console.log(`=================================================`);
+        console.log(`=================================================`);
+        console.log(` Studio Raio do Sol - Servidor rodando!`);
+        console.log(` Acesso local:   http://localhost:${PORT}`);
+        console.log(` Acesso celular: http://${localIP}:${PORT}`);
+        console.log(`=================================================`);
 
-    // Iniciar rotina de backup e espelhamento diário
-    autoBackup.startDailyBackupRoutine(db);
-});
+        // Iniciar rotina de backup e espelhamento diário
+        autoBackup.startDailyBackupRoutine(db);
+    });
+}
+
+module.exports = app;
